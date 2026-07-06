@@ -1,0 +1,418 @@
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  #root { font-family: 'Montserrat', system-ui, sans-serif; }
+  @keyframes rise { from { opacity:0; transform:translateY(14px);} to {opacity:1;transform:none;} }
+  @keyframes pop { from { opacity:0; transform:scale(.85);} to {opacity:1;transform:scale(1);} }
+  .tier { cursor:pointer; transition:transform .35s cubic-bezier(.34,1.4,.5,1), filter .25s; }
+  .tier:hover { filter:brightness(1.08); }
+  .tier:focus-visible { outline:3px solid #0E1A24; outline-offset:3px; }
+  input, textarea, button { font-family: inherit; }
+  input:focus, textarea:focus { outline: none; }
+  @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important;} }
+</style>
+<script type="text/babel">
+const { useState, useRef, useEffect, useCallback } = React;
+
+const BLUE = "#0068a9", GREEN = "#47ad4b", BLUE_D = "#004e80", GREEN_D = "#33853a", INK = "#0E1A24";
+
+const LEVELS = [
+  { id:"visao", n:"1º", title:"Visão", tag:"Estratégico", color:BLUE, dark:BLUE_D,
+    desc:"Contexto estratégico interno e externo. Onde a empresa define quem é e para onde vai.",
+    items:["Definição de identidade e propósito","Cultura","Responsabilidades","Estratégia","Pilares (Qualidade · Quantidade · Prazos · Eficiência)","Gestão de talentos e competências","Organograma"] },
+  { id:"tatico", n:"2º", title:"Tático", tag:"Recursos", color:GREEN, dark:GREEN_D,
+    desc:"Os recursos que sustentam a estratégia: pessoas, sistemas e estrutura.",
+    items:["Humanos — Fit cultural · Capacitação · Treinamento e desenvolvimento","Sistêmicos — ERP · Ferramentas de gestão · Planner · MRP Local","Estruturais — Estrutura predial · Logística · Hardware · Máquinas"] },
+  { id:"operacional", n:"3º", title:"Operacional", tag:"Processos · Plano tático", color:BLUE, dark:BLUE_D,
+    desc:"O que fazer com a visão + recursos. É onde você age. Cada setor tem seu checklist operacional.",
+    items:[], sectors:true },
+  { id:"resultados", n:"4º", title:"Resultado", tag:"Indicadores", color:GREEN, dark:GREEN_D,
+    desc:"A medição de tudo que foi construído acima.",
+    items:["Indicadores (métricas de desempenho)","Governança","Monitoramento","Avaliação de desempenho"] },
+];
+
+// The 6 fixed operational stages every sector follows
+const STAGES = [
+  { id:"rotinas", label:"Rotinas", hint:"Cultura e comportamentos que fluem para o objetivo" },
+  { id:"padronizacao", label:"Padronização", hint:"Qualidade" },
+  { id:"mapeamento", label:"Mapeamento de processos", hint:"Organização e controle de eficiência" },
+  { id:"planejamento", label:"Planejamento", hint:"Atendimento ao prazo" },
+  { id:"cronograma", label:"Cronograma de fabricação", hint:"Sequência e datas de produção" },
+  { id:"reunioes", label:"Reuniões", hint:"Ritmo e alinhamento" },
+];
+
+const DEFAULT_SECTORS = ["Estoque AC","PCP","Compras","Comercial","Financeiro","Estoque MT"];
+const btn = (c) => ({ border:"none", background:c, color:"#fff", fontWeight:700, fontSize:12.5, padding:"8px 14px", borderRadius:8, cursor:"pointer" });
+const uid = () => Math.random().toString(36).slice(2,9);
+
+function tierPath(i, total, W, H) {
+  const gap=6, th=(H-gap*(total-1))/total, top=i*(th+gap), bottom=top+th, half=W/2;
+  const wTop=(i/total)*W, wBot=((i+1)/total)*W;
+  if (i===0) return { poly:`${half},${top} ${half+wBot/2},${bottom} ${half-wBot/2},${bottom}`, cy:top+th*0.62, top, bottom };
+  return { poly:`${half-wTop/2},${top} ${half+wTop/2},${top} ${half+wBot/2},${bottom} ${half-wBot/2},${bottom}`, cy:top+th/2, top, bottom };
+}
+
+// ————————————————————— Storage layer —————————————————————
+const STORAGE_KEY = "steelbras:planner:v1";
+async function loadState() {
+  try {
+    const r = await window.storage.get(STORAGE_KEY);
+    if (r && r.value) return JSON.parse(r.value);
+  } catch (e) { /* first run — no key yet */ }
+  return null;
+}
+async function saveState(state) {
+  try { await window.storage.set(STORAGE_KEY, JSON.stringify(state)); } catch (e) { console.error("save failed", e); }
+}
+
+// ————————————————————— Sector Wheel —————————————————————
+function SectorWheel({ sectors, onPick, onAdd, onRename, onRemove, locked }) {
+  const [selected, setSelected] = useState(null);
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef(null);
+  const size=440, cx=size/2, cy=size/2, rOuter=195, rInner=78, n=sectors.length;
+
+  useEffect(()=>{ if(adding && inputRef.current) inputRef.current.focus(); },[adding]);
+
+  const colorFor = (i)=> i%2===0 ? GREEN : BLUE;
+  const polar = (r,d)=>{ const a=((d-90)*Math.PI)/180; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; };
+  const wedge = (i)=>{
+    const slice=360/n, pad=n>1?2.2:0, a0=i*slice+pad, a1=(i+1)*slice-pad;
+    const [x0o,y0o]=polar(rOuter,a0), [x1o,y1o]=polar(rOuter,a1), [x0i,y0i]=polar(rInner,a0), [x1i,y1i]=polar(rInner,a1);
+    const lg=a1-a0>180?1:0;
+    return `M ${x0i} ${y0i} L ${x0o} ${y0o} A ${rOuter} ${rOuter} 0 ${lg} 1 ${x1o} ${y1o} L ${x1i} ${y1i} A ${rInner} ${rInner} 0 ${lg} 0 ${x0i} ${y0i} Z`;
+  };
+  const labelPos=(i)=>{ const slice=360/n, mid=i*slice+slice/2; return polar((rOuter+rInner)/2, mid); };
+
+  const doAdd=()=>{ const v=draft.trim(); if(v) onAdd(v); setDraft(""); setAdding(false); };
+
+  return (
+    <div>
+      <svg viewBox={`0 0 ${size} ${size}`} width="100%" style={{display:"block", overflow:"visible", maxWidth:440, margin:"0 auto"}} role="group" aria-label="Roda de setores">
+        <defs>
+          <radialGradient id="hubg" cx="45%" cy="40%" r="70%"><stop offset="0" stopColor="#fff"/><stop offset="1" stopColor="#eef4f9"/></radialGradient>
+          <filter id="wsh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="8" floodColor="#0068a9" floodOpacity="0.20"/></filter>
+        </defs>
+        {sectors.map((s,i)=>{
+          const isSel = selected===i;
+          const [lx,ly]=labelPos(i); const slice=360/n, mid=i*slice+slice/2;
+          const rot = mid>180 ? mid-270 : mid-90;
+          const [ox,oy]=polar(12, mid);
+          return (
+            <g key={s.id} style={{cursor:"pointer"}}
+               onClick={()=> locked ? onPick(s.id) : setSelected(isSel?null:i)}
+               onDoubleClick={()=> onPick(s.id)}
+               tabIndex={0}
+               onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault(); onPick(s.id);} }}
+               role="button" aria-label={`Setor ${s.name}. Abrir checklist`}>
+              <path d={wedge(i)} fill={colorFor(i)} stroke="#fff" strokeWidth="2.5"
+                style={{ transition:"transform .25s cubic-bezier(.34,1.4,.5,1), filter .2s",
+                         transform: isSel? `translate(${ox-cx}px,${oy-cy}px)`:"none",
+                         filter: isSel? "url(#wsh) brightness(1.08)":"none" }} />
+              <text x={lx} y={ly} fill="#fff" fontSize="13.5" fontWeight="800" textAnchor="middle" dominantBaseline="middle"
+                    transform={`rotate(${rot} ${lx} ${ly})`} style={{pointerEvents:"none"}}>
+                {s.name.length>13 ? s.name.slice(0,12)+"…" : s.name}
+              </text>
+            </g>
+          );
+        })}
+        <circle cx={cx} cy={cy} r={rInner} fill="url(#hubg)" stroke={BLUE} strokeWidth="3"/>
+        <circle cx={cx} cy={cy} r={rInner-9} fill="none" stroke={GREEN} strokeWidth="1.5" strokeDasharray="3 5" opacity="0.6"/>
+        <text x={cx} y={cy-10} textAnchor="middle" fontSize="15" fontWeight="800" fill={BLUE_D}>OPERACIONAL</text>
+        <text x={cx} y={cy+9} textAnchor="middle" fontSize="10.5" fontWeight="600" fill={GREEN_D}>onde eu atuo</text>
+        <text x={cx} y={cy+27} textAnchor="middle" fontSize="10" fill="#8493a0">{n} setores</text>
+      </svg>
+
+      <div style={{display:"flex", gap:10, flexWrap:"wrap", justifyContent:"center", marginTop:6}}>
+        {!locked && selected!=null && sectors[selected] && (
+          <div style={{display:"flex", gap:8, alignItems:"center", background:"#f4f8fb", borderRadius:12, padding:"8px 10px"}}>
+            <input value={sectors[selected].name} onChange={(e)=>onRename(sectors[selected].id, e.target.value)}
+              style={{border:`2px solid ${colorFor(selected)}`, borderRadius:8, padding:"6px 10px", fontSize:13, fontWeight:700, color:INK, width:140}}/>
+            <button onClick={()=>onPick(sectors[selected].id)} style={btn(colorFor(selected))}>Abrir</button>
+            <button onClick={()=>{onRemove(sectors[selected].id); setSelected(null);}} style={btn("#e5484d")}>Remover</button>
+            <button onClick={()=>setSelected(null)} style={btn("#8493a0")}>Ok</button>
+          </div>
+        )}
+        {!locked && (adding ? (
+          <div style={{display:"flex", gap:8, alignItems:"center", background:"#f4f8fb", borderRadius:12, padding:"8px 10px"}}>
+            <input ref={inputRef} value={draft} onChange={(e)=>setDraft(e.target.value)}
+              onKeyDown={(e)=>{ if(e.key==="Enter") doAdd(); if(e.key==="Escape"){setAdding(false); setDraft("");} }}
+              placeholder="Nome do setor"
+              style={{border:`2px solid ${GREEN}`, borderRadius:8, padding:"6px 10px", fontSize:13, fontWeight:700, color:INK, width:150}}/>
+            <button onClick={doAdd} style={btn(GREEN)}>Adicionar</button>
+          </div>
+        ) : selected==null && (
+          <button onClick={()=>setAdding(true)} style={{...btn(BLUE), padding:"10px 18px"}}>+ Adicionar setor</button>
+        ))}
+      </div>
+      <p style={{textAlign:"center", fontSize:12.5, color:"#8493a0", marginTop:8}}>
+        {locked ? "Clique numa fatia para abrir o checklist." : "1 clique: editar setor · 2 cliques: abrir checklist."}
+      </p>
+    </div>
+  );
+}
+
+// ————————————————————— Sector Checklist (planner) —————————————————————
+function SectorChecklist({ sector, data, onChange, onBack, locked }) {
+  const [openStage, setOpenStage] = useState(STAGES[0].id);
+
+  const stageData = (sid) => (data[sid] || []);
+  const addTask = (sid) => {
+    const next = { ...data, [sid]: [...stageData(sid), { id:uid(), title:"", who:"", done:false }] };
+    onChange(next);
+  };
+  const updTask = (sid, tid, patch) => {
+    onChange({ ...data, [sid]: stageData(sid).map(t=> t.id===tid ? {...t,...patch} : t) });
+  };
+  const delTask = (sid, tid) => {
+    onChange({ ...data, [sid]: stageData(sid).filter(t=>t.id!==tid) });
+  };
+
+  const totalTasks = STAGES.reduce((a,s)=>a+stageData(s.id).length,0);
+  const doneTasks = STAGES.reduce((a,s)=>a+stageData(s.id).filter(t=>t.done).length,0);
+
+  return (
+    <div style={{animation:"rise .35s ease both"}}>
+      <div style={{display:"flex", alignItems:"center", gap:12, marginBottom:14, flexWrap:"wrap"}}>
+        <button onClick={onBack} style={{...btn("#8493a0"), padding:"8px 12px"}}>‹ Voltar à roda</button>
+        <h3 style={{margin:0, fontSize:22, fontWeight:800, color:BLUE_D}}>{sector.name}</h3>
+        <span style={{marginLeft:"auto", fontSize:12.5, fontWeight:700, color: doneTasks===totalTasks&&totalTasks>0 ? GREEN_D : "#8493a0"}}>
+          {doneTasks}/{totalTasks} concluídas
+        </span>
+      </div>
+
+      <div style={{display:"grid", gap:10}}>
+        {STAGES.map((st, idx)=>{
+          const tasks = stageData(st.id);
+          const isOpen = openStage===st.id;
+          const done = tasks.filter(t=>t.done).length;
+          const accent = idx%2===0 ? GREEN : BLUE;
+          const accentD = idx%2===0 ? GREEN_D : BLUE_D;
+          return (
+            <div key={st.id} style={{border:`1px solid #e3ebf1`, borderRadius:14, overflow:"hidden", background:"#fff"}}>
+              <button onClick={()=>setOpenStage(isOpen?null:st.id)}
+                style={{width:"100%", display:"flex", alignItems:"center", gap:12, padding:"13px 16px", background: isOpen? "#f4f8fb":"#fff", border:"none", cursor:"pointer", textAlign:"left"}}>
+                <span style={{width:26, height:26, borderRadius:8, background:accent, color:"#fff", fontWeight:800, fontSize:13, display:"grid", placeItems:"center", flexShrink:0}}>{idx+1}</span>
+                <span>
+                  <span style={{display:"block", fontWeight:800, fontSize:15, color:INK}}>{st.label}</span>
+                  <span style={{display:"block", fontSize:11.5, color:"#8493a0"}}>{st.hint}</span>
+                </span>
+                <span style={{marginLeft:"auto", display:"flex", alignItems:"center", gap:10}}>
+                  {tasks.length>0 && (
+                    <span style={{fontSize:11.5, fontWeight:700, color: done===tasks.length ? GREEN_D : "#8493a0", background:"#f0f4f8", padding:"3px 9px", borderRadius:999}}>{done}/{tasks.length}</span>
+                  )}
+                  <span style={{color:accentD, transform: isOpen?"rotate(90deg)":"none", transition:"transform .2s", fontWeight:800}}>›</span>
+                </span>
+              </button>
+
+              {isOpen && (
+                <div style={{padding:"6px 16px 16px"}}>
+                  {tasks.length===0 && (
+                    <p style={{margin:"6px 0 12px", fontSize:13, color:"#a2afba", fontStyle:"italic"}}>
+                      {locked ? "Nenhum item." : "Nenhum item ainda. Adicione o primeiro abaixo."}
+                    </p>
+                  )}
+                  <div style={{display:"grid", gap:7}}>
+                    {tasks.map((t)=>(
+                      <div key={t.id} style={{display:"flex", alignItems:"center", gap:9, background:"#f7fafc", borderRadius:10, padding:"8px 10px", borderLeft:`3px solid ${accent}`, animation:"pop .2s ease both"}}>
+                        <input type="checkbox" checked={t.done} disabled={locked}
+                          onChange={(e)=>updTask(st.id, t.id, {done:e.target.checked})}
+                          style={{width:18, height:18, accentColor:accent, cursor: locked?"default":"pointer", flexShrink:0}}/>
+                        {locked ? (
+                          <span style={{flex:1, fontSize:14, fontWeight:600, color:INK, textDecoration: t.done?"line-through":"none", opacity: t.done?0.55:1}}>
+                            {t.title || <em style={{color:"#c0ccd6"}}>(sem título)</em>}
+                          </span>
+                        ) : (
+                          <input value={t.title} placeholder="Descreva a ação..."
+                            onChange={(e)=>updTask(st.id, t.id, {title:e.target.value})}
+                            style={{flex:1, minWidth:0, border:"none", background:"transparent", fontSize:14, fontWeight:600, color:INK, textDecoration: t.done?"line-through":"none"}}/>
+                        )}
+                        {locked ? (
+                          t.who && <span style={{fontSize:12, fontWeight:700, color:accentD, background:"#fff", padding:"3px 9px", borderRadius:999, whiteSpace:"nowrap"}}>{t.who}</span>
+                        ) : (
+                          <input value={t.who} placeholder="Responsável"
+                            onChange={(e)=>updTask(st.id, t.id, {who:e.target.value})}
+                            style={{width:110, border:`1px solid #dce6ee`, borderRadius:8, padding:"5px 8px", fontSize:12.5, fontWeight:700, color:accentD, background:"#fff", flexShrink:0}}/>
+                        )}
+                        {!locked && (
+                          <button onClick={()=>delTask(st.id, t.id)} aria-label="Remover item"
+                            style={{border:"none", background:"transparent", color:"#c0ccd6", fontSize:18, cursor:"pointer", lineHeight:1, flexShrink:0}}>×</button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {!locked && (
+                    <button onClick={()=>addTask(st.id)}
+                      style={{marginTop:10, border:`1.5px dashed ${accent}`, background:"transparent", color:accentD, fontWeight:700, fontSize:13, padding:"8px 14px", borderRadius:10, cursor:"pointer"}}>
+                      + Adicionar item
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ————————————————————— App —————————————————————
+function App() {
+  const [open, setOpen] = useState(null);           // which pyramid level
+  const [sectors, setSectors] = useState(DEFAULT_SECTORS.map(name=>({id:uid(), name})));
+  const [checklists, setChecklists] = useState({}); // { sectorId: { stageId: [tasks] } }
+  const [activeSector, setActiveSector] = useState(null);
+  const [locked, setLocked] = useState(false);      // present mode
+  const [loaded, setLoaded] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // Load once
+  useEffect(()=>{ (async()=>{
+    const s = await loadState();
+    if (s) {
+      if (Array.isArray(s.sectors) && s.sectors.length) setSectors(s.sectors);
+      if (s.checklists) setChecklists(s.checklists);
+    }
+    setLoaded(true);
+  })(); },[]);
+
+  // Autosave (debounced) after load
+  useEffect(()=>{
+    if (!loaded) return;
+    const t = setTimeout(async ()=>{
+      await saveState({ sectors, checklists });
+      setSaved(true);
+      setTimeout(()=>setSaved(false), 1200);
+    }, 500);
+    return ()=>clearTimeout(t);
+  }, [sectors, checklists, loaded]);
+
+  const addSector = (name)=> setSectors(s=>[...s, {id:uid(), name}]);
+  const renameSector = (id, name)=> setSectors(s=>s.map(x=>x.id===id?{...x,name}:x));
+  const removeSector = (id)=> { setSectors(s=>s.filter(x=>x.id!==id)); setChecklists(c=>{const n={...c}; delete n[id]; return n;}); if(activeSector===id) setActiveSector(null); };
+  const setSectorData = (id, data)=> setChecklists(c=>({...c, [id]: data}));
+
+  const activeLevel = open!=null ? LEVELS[open] : null;
+  const W=520, H=460, total=LEVELS.length;
+  const sectorObj = sectors.find(s=>s.id===activeSector);
+
+  if (!loaded) return <div style={{padding:40, textAlign:"center", color:"#8493a0"}}>Carregando planner…</div>;
+
+  return (
+    <div style={{minHeight:"100vh", background:"linear-gradient(165deg,#f4f7fa 0%,#e9eef3 100%)", color:INK, padding:"clamp(16px,4vw,48px)"}}>
+      <header style={{maxWidth:1160, margin:"0 auto 24px", display:"flex", alignItems:"flex-end", gap:16, flexWrap:"wrap"}}>
+        <div style={{flex:1, minWidth:260}}>
+          <div style={{display:"flex", alignItems:"center", gap:12}}>
+            <span style={{width:34, height:6, background:GREEN, borderRadius:3}}/>
+            <span style={{width:18, height:6, background:BLUE, borderRadius:3}}/>
+            <span style={{fontSize:12, letterSpacing:3, fontWeight:700, color:BLUE, textTransform:"uppercase"}}>Steelbras Antenas</span>
+          </div>
+          <h1 style={{fontSize:"clamp(24px,4vw,40px)", fontWeight:800, margin:"10px 0 4px", lineHeight:1.05}}>Planner de Gestão</h1>
+          <p style={{margin:0, color:"#5b6b78", fontSize:"clamp(14px,1.6vw,16px)", maxWidth:620}}>
+            Da visão ao resultado. No <strong style={{color:GREEN_D}}>Operacional</strong>, cada setor tem o mesmo checklist de 6 etapas.
+          </p>
+        </div>
+        <div style={{display:"flex", gap:10, alignItems:"center"}}>
+          <span style={{fontSize:12, color: saved?GREEN_D:"#a2afba", fontWeight:700, transition:"color .2s"}}>{saved? "✓ Salvo" : "salvamento automático"}</span>
+          <button onClick={()=>setLocked(l=>!l)}
+            style={{...btn(locked?GREEN:BLUE), padding:"10px 18px", boxShadow:"0 4px 14px rgba(0,104,169,.25)"}}>
+            {locked ? "✎ Editar" : "▷ Apresentar"}
+          </button>
+        </div>
+      </header>
+
+      <div style={{maxWidth:1160, margin:"0 auto", display:"grid", gridTemplateColumns:"minmax(300px,1fr) minmax(340px,1.15fr)", gap:"clamp(20px,3vw,44px)", alignItems:"center"}}>
+        {/* Pyramid */}
+        <div style={{position:"relative"}}>
+          <svg viewBox={`0 0 ${W} ${H+30}`} width="100%" role="group" aria-label="Pirâmide de gestão" style={{overflow:"visible", display:"block"}}>
+            <defs>
+              {LEVELS.map((l,i)=>(
+                <linearGradient id={`grad${i}`} key={i} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor={l.color}/><stop offset="1" stopColor={l.dark}/></linearGradient>
+              ))}
+              <filter id="drop" x="-30%" y="-10%" width="160%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="12" floodColor="#0068a9" floodOpacity="0.22"/></filter>
+            </defs>
+            <ellipse cx={W/2} cy={H+14} rx={W/2+6} ry="16" fill="#0068a9" opacity="0.10"/>
+            {LEVELS.map((l,i)=>{
+              const g=tierPath(i,total,W,H); const isOpen=open===i;
+              return (
+                <g key={l.id} className="tier" tabIndex={0} role="button" aria-pressed={isOpen} aria-label={`${l.n} ${l.title} — ${l.tag}`}
+                   onClick={()=>{ setOpen(isOpen?null:i); setActiveSector(null); }}
+                   onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault(); setOpen(isOpen?null:i); setActiveSector(null);} }}
+                   style={{transform: isOpen?"translateX(16px)":"none"}} filter={isOpen?"url(#drop)":undefined}>
+                  <polygon points={ i===0
+                    ? `${W/2},${g.top} ${W/2+(i+1)/total*W/2},${g.bottom} ${W/2+(i+1)/total*W/2+12},${g.bottom-6} ${W/2+8},${g.top}`
+                    : `${W/2+(i)/total*W/2},${g.top} ${W/2+(i+1)/total*W/2},${g.bottom} ${W/2+(i+1)/total*W/2+12},${g.bottom-6} ${W/2+(i)/total*W/2+12},${g.top-6}` }
+                    fill={l.dark} opacity="0.85"/>
+                  <polygon points={g.poly} fill={`url(#grad${i})`} stroke="#fff" strokeWidth="1.5"/>
+                  <text x={W/2} y={g.cy-(i===0?-4:6)} textAnchor="middle" fontSize={i===0?13:17} fontWeight="800" fill="#fff" style={{pointerEvents:"none"}}>{l.n} {l.title}</text>
+                  {i!==0 && <text x={W/2} y={g.cy+13} textAnchor="middle" fontSize="10.5" fontWeight="600" fill="#fff" fillOpacity="0.82" style={{pointerEvents:"none"}}>{l.tag}</text>}
+                </g>
+              );
+            })}
+          </svg>
+          <p style={{textAlign:"center", fontSize:12.5, color:"#8493a0", marginTop:4}}>Toque em um nível para abrir</p>
+        </div>
+
+        {/* Detail */}
+        <div>
+          {!activeLevel && (
+            <div style={{border:"2px dashed #c3d3df", borderRadius:20, padding:"40px 28px", textAlign:"center", color:"#7c8b98", background:"rgba(255,255,255,.5)"}}>
+              <div style={{fontSize:34, marginBottom:8}}>▲</div>
+              Selecione um nível da pirâmide para começar.
+            </div>
+          )}
+
+          {activeLevel && !activeLevel.sectors && (
+            <div key={activeLevel.id} style={{background:"#fff", borderRadius:22, padding:"clamp(20px,3vw,32px)", boxShadow:"0 24px 60px rgba(14,26,36,.14)", borderTop:`6px solid ${activeLevel.color}`, animation:"rise .4s ease both"}}>
+              <div style={{display:"flex", alignItems:"center", gap:12, marginBottom:6}}>
+                <span style={{background:activeLevel.color, color:"#fff", fontWeight:800, fontSize:14, padding:"5px 12px", borderRadius:999}}>{activeLevel.n}</span>
+                <h2 style={{margin:0, fontSize:"clamp(22px,3vw,30px)", fontWeight:800}}>{activeLevel.title}</h2>
+                <span style={{marginLeft:"auto", fontSize:12, fontWeight:700, color:activeLevel.dark, textTransform:"uppercase", letterSpacing:1}}>{activeLevel.tag}</span>
+              </div>
+              <p style={{margin:"0 0 18px", color:"#5b6b78", fontSize:15, lineHeight:1.5}}>{activeLevel.desc}</p>
+              <ul style={{listStyle:"none", padding:0, margin:0, display:"grid", gap:8}}>
+                {activeLevel.items.map((it,k)=>(
+                  <li key={k} style={{display:"flex", gap:10, alignItems:"flex-start", fontSize:14.5, lineHeight:1.45, padding:"9px 12px", background:"#f4f8fb", borderRadius:10, borderLeft:`3px solid ${activeLevel.color}`}}>
+                    <span style={{color:activeLevel.color, fontWeight:800}}>›</span><span>{it}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {activeLevel && activeLevel.sectors && (
+            <div key="op" style={{background:"#fff", borderRadius:22, padding:"clamp(18px,3vw,28px)", boxShadow:"0 24px 60px rgba(14,26,36,.14)", borderTop:`6px solid ${activeLevel.color}`, animation:"rise .4s ease both"}}>
+              {!sectorObj ? (
+                <>
+                  <div style={{display:"flex", alignItems:"center", gap:12, marginBottom:6}}>
+                    <span style={{background:activeLevel.color, color:"#fff", fontWeight:800, fontSize:14, padding:"5px 12px", borderRadius:999}}>{activeLevel.n}</span>
+                    <h2 style={{margin:0, fontSize:"clamp(22px,3vw,28px)", fontWeight:800}}>{activeLevel.title}</h2>
+                    <span style={{marginLeft:"auto", fontSize:12, fontWeight:700, color:activeLevel.dark, textTransform:"uppercase", letterSpacing:1}}>{activeLevel.tag}</span>
+                  </div>
+                  <p style={{margin:"0 0 16px", color:"#5b6b78", fontSize:15, lineHeight:1.5}}>{activeLevel.desc}</p>
+                  <SectorWheel sectors={sectors} locked={locked}
+                    onPick={setActiveSector} onAdd={addSector} onRename={renameSector} onRemove={removeSector}/>
+                </>
+              ) : (
+                <SectorChecklist sector={sectorObj} locked={locked}
+                  data={checklists[sectorObj.id] || {}}
+                  onChange={(d)=>setSectorData(sectorObj.id, d)}
+                  onBack={()=>setActiveSector(null)}/>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
