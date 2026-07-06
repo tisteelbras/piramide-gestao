@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+/* ————————————————————————————————————————————————
+   SOS — Identidade visual Steelbras
+   Tokens da marca disponíveis como utilitários Tailwind
+   (ex.: bg-brand-blue, text-brand-green) e como CSS vars.
+———————————————————————————————————————————————— */
+@theme {
+  /* Cores da marca */
+  --color-brand-blue: #0068a9;
+  --color-brand-blue-dark: #004e80;
+  --color-brand-green: #47ad4b;
+  --color-brand-green-dark: #33853a;
+  --color-brand-ink: #0e1a24;
+
+  /* Neutros com leve viés azul (escolhidos, não default) */
+  --color-surface: #ffffff;
+  --color-surface-sunk: #eef4f9;
+  --color-app-bg: #f4f7fa;
+  --color-muted: #5b6b78;
+  --color-faint: #8493a0;
+  --color-hairline: #d9e2ea;
+
+  /* Tipografia */
+  --font-sans: var(--font-montserrat), system-ui, -apple-system, sans-serif;
+}
+
+:root {
+  --background: #f4f7fa;
+  --foreground: #0e1a24;
+}
+
+body {
+  background: linear-gradient(165deg, #f4f7fa 0%, #e9eef3 100%);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Animações reaproveitadas do protótipo */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
