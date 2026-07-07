@@ -5,8 +5,10 @@ import { useMemo, useState, useTransition } from "react";
 import PiramideMaturidade from "@/features/pyramid/PiramideMaturidade";
 import PainelRecursos from "@/features/resources/PainelRecursos";
 import PainelProcessos from "@/features/processes/PainelProcessos";
+import PainelResultados from "@/features/results/PainelResultados";
 import type { RecursosDoSetor } from "@/features/resources/tipos";
 import type { ProcessoComEixos } from "@/features/processes/tipos";
+import type { ResultadosDoSetor } from "@/features/results/tipos";
 import { consolidarPorNivel } from "./consolidar";
 import { salvarResposta } from "./actions";
 import { NIVEIS, type CriterioAvaliado, type Nivel, type StatusResposta } from "./tipos";
@@ -24,6 +26,7 @@ export default function AvaliacaoSetor({
   criteriosIniciais,
   recursos,
   processos,
+  resultados,
 }: {
   setorId: string;
   setorNome: string;
@@ -31,6 +34,7 @@ export default function AvaliacaoSetor({
   criteriosIniciais: CriterioAvaliado[];
   recursos: RecursosDoSetor;
   processos: ProcessoComEixos[];
+  resultados: ResultadosDoSetor;
 }) {
   const [criterios, setCriterios] = useState(criteriosIniciais);
   const [nivelAtivo, setNivelAtivo] = useState<Nivel>("visao");
@@ -154,6 +158,9 @@ export default function AvaliacaoSetor({
           )}
           {nivelAtivo === "processos" && (
             <PainelProcessos setorId={setorId} processos={processos} />
+          )}
+          {nivelAtivo === "resultados" && (
+            <PainelResultados setorId={setorId} resultados={resultados} />
           )}
         </div>
       </div>

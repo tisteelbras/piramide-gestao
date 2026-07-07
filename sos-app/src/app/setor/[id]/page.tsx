@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { carregarAvaliacaoDoSetor } from "@/features/assessments/queries";
 import { carregarRecursos } from "@/features/resources/queries";
 import { carregarProcessos } from "@/features/processes/queries";
+import { carregarResultados } from "@/features/results/queries";
 import AvaliacaoSetor from "@/features/assessments/AvaliacaoSetor";
 
 export default async function SetorPage({
@@ -15,9 +16,10 @@ export default async function SetorPage({
   const dados = await carregarAvaliacaoDoSetor(id, session?.user?.id);
   if (!dados) notFound();
 
-  const [recursos, processos] = await Promise.all([
+  const [recursos, processos, resultados] = await Promise.all([
     carregarRecursos(id, dados.avaliacaoId),
     carregarProcessos(id),
+    carregarResultados(id),
   ]);
 
   return (
@@ -28,6 +30,7 @@ export default async function SetorPage({
       criteriosIniciais={dados.criterios}
       recursos={recursos}
       processos={processos}
+      resultados={resultados}
     />
   );
 }
