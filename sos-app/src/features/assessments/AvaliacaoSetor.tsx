@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import PiramideMaturidade from "@/features/pyramid/PiramideMaturidade";
+import PainelRecursos from "@/features/resources/PainelRecursos";
+import PainelProcessos from "@/features/processes/PainelProcessos";
+import type { RecursosDoSetor } from "@/features/resources/tipos";
+import type { ProcessoComEixos } from "@/features/processes/tipos";
 import { consolidarPorNivel } from "./consolidar";
 import { salvarResposta } from "./actions";
 import { NIVEIS, type CriterioAvaliado, type Nivel, type StatusResposta } from "./tipos";
@@ -14,13 +18,19 @@ const STATUS_OPCOES: { v: StatusResposta; label: string; cor: string }[] = [
 ];
 
 export default function AvaliacaoSetor({
+  setorId,
   setorNome,
   avaliacaoId,
   criteriosIniciais,
+  recursos,
+  processos,
 }: {
+  setorId: string;
   setorNome: string;
   avaliacaoId: string;
   criteriosIniciais: CriterioAvaliado[];
+  recursos: RecursosDoSetor;
+  processos: ProcessoComEixos[];
 }) {
   const [criterios, setCriterios] = useState(criteriosIniciais);
   const [nivelAtivo, setNivelAtivo] = useState<Nivel>("visao");
@@ -137,6 +147,14 @@ export default function AvaliacaoSetor({
               <p style={{ fontSize: 13.5, color: "#a2afba", fontStyle: "italic" }}>Nenhum critério neste nível ainda.</p>
             )}
           </div>
+
+          {/* Cadastros específicos por nível */}
+          {nivelAtivo === "tatico" && (
+            <PainelRecursos setorId={setorId} avaliacaoId={avaliacaoId} recursos={recursos} />
+          )}
+          {nivelAtivo === "processos" && (
+            <PainelProcessos setorId={setorId} processos={processos} />
+          )}
         </div>
       </div>
     </div>
