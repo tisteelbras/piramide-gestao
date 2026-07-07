@@ -14,6 +14,7 @@ import {
 import Pyramid from "./Pyramid";
 import SectorWheel from "./SectorWheel";
 import SectorChecklist from "./SectorChecklist";
+import { logoutAction } from "@/app/logout-action";
 
 const { blue: BLUE, green: GREEN, blueDark: BLUE_D, greenDark: GREEN_D } = BRAND;
 
@@ -50,7 +51,7 @@ function saveState(state: PersistedState) {
   }
 }
 
-export default function Sos() {
+export default function Sos({ usuarioNome = null }: { usuarioNome?: string | null }) {
   const [open, setOpen] = useState<number | null>(null);
   const [sectors, setSectors] = useState<Sector[]>(() =>
     DEFAULT_SECTORS.map((name) => ({ id: uid(), name })),
@@ -137,6 +138,19 @@ export default function Sos() {
           >
             {locked ? "✎ Editar" : "▷ Apresentar"}
           </button>
+          {usuarioNome && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 10, borderLeft: "1px solid #d7e0e8" }}>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: "#46586a" }}>{usuarioNome}</span>
+              <form action={logoutAction}>
+                <button
+                  type="submit"
+                  style={{ border: "1px solid #d9e2ea", background: "#fff", color: "#5b6b78", fontWeight: 700, fontSize: 12, padding: "8px 12px", borderRadius: 8, cursor: "pointer" }}
+                >
+                  Sair
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </header>
 
