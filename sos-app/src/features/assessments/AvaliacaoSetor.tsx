@@ -74,7 +74,8 @@ export default function AvaliacaoSetor({
           ‹ Setores
         </Link>
         <h1 style={{ margin: 0, fontSize: "clamp(20px,3vw,28px)", fontWeight: 800, color: "#0e1a24" }}>{setorNome}</h1>
-        <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 700, color: salvando ? "#d98a00" : "#33853a" }}>
+        <Link href={`/setor/${setorId}/relatorio`} style={{ marginLeft: "auto", textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>⭳ Relatório PDF</Link>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: salvando ? "#d98a00" : "#33853a" }}>
           {salvando ? "salvando…" : "✓ salvo"}
         </span>
       </header>

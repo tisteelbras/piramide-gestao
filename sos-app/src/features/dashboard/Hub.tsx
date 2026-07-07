@@ -43,7 +43,7 @@ export default function Hub({
           <Link href="/dashboard" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#0068a9", padding: "9px 14px", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,104,169,.25)" }}>▤ Dashboard</Link>
           {usuarioNome && (
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: "#46586a" }}>{usuarioNome}</span>
+            <Link href="/conta" style={{ fontSize: 12.5, fontWeight: 700, color: "#46586a", textDecoration: "none" }}>{usuarioNome}</Link>
             <form action={logoutAction}>
               <button
                 type="submit"
