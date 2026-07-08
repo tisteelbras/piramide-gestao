@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { logoutAction } from "@/app/logout-action";
+import AddSetor from "./AddSetor";
 import { grauMaturidade, ROTULO_MATURIDADE } from "@/domain/maturidade";
 import type { ResumoSetor } from "@/features/assessments/queries-resumo";
 
@@ -115,6 +116,7 @@ export default function Hub({
             </Link>
           );
         })}
+        <AddSetor />
       </div>
     </div>
   );
