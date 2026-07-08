@@ -32,12 +32,14 @@ export default function Hub({
         }}
       >
         <div style={{ flex: 1, minWidth: 260 }}>
-          <Image src="/steelbras-logo.svg" alt="Steelbras" width={130} height={47} style={{ height: 38, width: "auto" }} priority />
-          <h1 style={{ fontSize: "clamp(22px,3.4vw,34px)", fontWeight: 800, margin: "12px 0 4px", color: "#0e1a24" }}>
-            Diagnóstico organizacional
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <Image src="/steelbras-logo.svg" alt="Steelbras" width={130} height={47} style={{ height: 34, width: "auto" }} priority />
+          </div>
+          <h1 style={{ fontSize: "clamp(24px,3.6vw,38px)", fontWeight: 800, margin: "12px 0 2px", color: "#0e1a24", letterSpacing: "-.01em" }}>
+            NEXO
           </h1>
           <p style={{ margin: 0, color: "#5b6b78", fontSize: 15 }}>
-            Escolha um setor para avaliar a maturidade da gestão.
+            <b style={{ color: "#0068a9" }}>Conectar. Executar. Evoluir.</b> · Escolha um setor para diagnosticar a maturidade da gestão.
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

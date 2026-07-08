@@ -56,6 +56,8 @@ export const sistema = pgTable("sistema", {
   // Quando true, é uma NECESSIDADE (sistema importante que não existe) —
   // dispara recomendação de melhoria.
   ehNecessidade: boolean("eh_necessidade").notNull().default(false),
+  // Na necessidade: o gestor explica como esse sistema melhoraria a gestão.
+  justificativa: text("justificativa"),
   ...timestamps,
 });
 

@@ -24,9 +24,10 @@ export default function LoginPage() {
           overflow: "hidden",
         }}
       >
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.01em" }}>
-            Steel<span style={{ color: "#7fdc86" }}>bras</span>
+        <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "baseline", gap: 12 }}>
+          <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-.01em" }}>NEXO</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,.75)" }}>
+            by Steel<span style={{ color: "#7fdc86" }}>bras</span>
           </span>
         </div>
 
@@ -44,11 +45,12 @@ export default function LoginPage() {
 
         <div style={{ position: "relative", zIndex: 1 }}>
           <h2 style={{ fontSize: "clamp(20px,2.4vw,26px)", fontWeight: 800, margin: "0 0 8px", lineHeight: 1.2 }}>
-            Sistema de Operação Steelbras
+            Conectar. Executar. Evoluir.
           </h2>
-          <p style={{ margin: 0, fontSize: 15, color: "rgba(255,255,255,.82)", maxWidth: "42ch" }}>
-            Diagnóstico organizacional que transforma avaliações em maturidade de
-            gestão — do estratégico ao operacional.
+          <p style={{ margin: 0, fontSize: 15, color: "rgba(255,255,255,.82)", maxWidth: "46ch" }}>
+            Todo resultado é consequência da conexão entre Visão, Recursos,
+            Processos e Resultados. O NEXO diagnostica essa conexão e mostra
+            onde estão os gargalos de maturidade.
           </p>
         </div>
 
@@ -80,10 +82,10 @@ export default function LoginPage() {
           <div style={{ marginBottom: 28 }}>
             <Image src="/steelbras-logo.svg" alt="Steelbras" width={140} height={51} style={{ height: 40, width: "auto" }} priority />
             <h1 style={{ fontSize: 26, fontWeight: 800, margin: "20px 0 4px", color: "#0e1a24" }}>
-              Entrar
+              Entrar no NEXO
             </h1>
             <p style={{ margin: 0, fontSize: 14.5, color: "#5b6b78" }}>
-              Acesse o painel de diagnóstico da sua área.
+              Acesse o diagnóstico de maturidade da sua área.
             </p>
           </div>
           <LoginForm />

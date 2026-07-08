@@ -10,9 +10,9 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "SOS — Sistema de Operação Steelbras",
+  title: "NEXO — Conectar. Executar. Evoluir.",
   description:
-    "O centro estratégico da Steelbras: uma pirâmide organizacional que conecta visão, recursos, processos e resultados.",
+    "NEXO: a metodologia de diagnóstico da Steelbras que conecta Visão, Recursos, Processos e Resultados em uma pirâmide de maturidade.",
 };
 
 export default function RootLayout({

@@ -64,10 +64,17 @@ export async function salvarNotaColaborador(input: {
 }
 
 // ————— Sistemas —————
-export async function addSistema(setorId: string, nome: string, ehNecessidade = false) {
+export async function addSistema(setorId: string, nome: string, ehNecessidade = false, justificativa?: string) {
   const emp = await guard();
   if (!nome.trim()) return { ok: false as const };
-  await db.insert(sistema).values({ empresaId: emp.id, setorId, nome: nome.trim(), ehNecessidade, nota: ehNecessidade ? "0" : null });
+  await db.insert(sistema).values({
+    empresaId: emp.id,
+    setorId,
+    nome: nome.trim(),
+    ehNecessidade,
+    nota: null,
+    justificativa: justificativa?.trim() || null,
+  });
   refresh();
   return { ok: true as const };
 }

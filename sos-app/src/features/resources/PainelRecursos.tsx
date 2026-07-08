@@ -105,24 +105,58 @@ function AbaRh({ setorId, avaliacaoId, colaboradores, run }: { setorId: string; 
 }
 
 function AbaSistemas({ setorId, sistemas, run }: { setorId: string; sistemas: RecursosDoSetor["sistemas"]; run: (fn: () => Promise<unknown>) => void }) {
+  const [necAberta, setNecAberta] = useState(false);
+  const [necNome, setNecNome] = useState("");
+  const [necJust, setNecJust] = useState("");
+
+  const salvarNecessidade = () => {
+    if (!necNome.trim()) return;
+    run(() => addSistema(setorId, necNome.trim(), true, necJust));
+    setNecNome(""); setNecJust(""); setNecAberta(false);
+  };
+
   return (
     <div>
-      {sistemas.length === 0 && <p style={{ fontSize: 13, color: "#a2afba", fontStyle: "italic", margin: "4px 0" }}>Nenhum sistema. Cadastre ERP, CRM, Planner, etc.</p>}
+      {sistemas.length === 0 && <p style={{ fontSize: 13, color: "#a2afba", fontStyle: "italic", margin: "4px 0" }}>Nenhum sistema. Cadastre ERP, Ferramentas de Gestão, Planner, MRP…</p>}
       <div style={{ display: "grid", gap: 8 }}>
         {sistemas.map((s) => (
-          <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, border: "1px solid #e3ebf1", borderRadius: 10, padding: "8px 12px" }}>
-            <span style={{ fontWeight: 700, color: INK, fontSize: 13.5, minWidth: 110 }}>{s.nome}</span>
-            {s.ehNecessidade
-              ? <span style={{ fontSize: 11.5, fontWeight: 700, color: "#c0392b", background: "#fdecea", padding: "3px 9px", borderRadius: 999 }}>necessidade</span>
-              : <Slider value={s.nota} onChange={(n) => run(() => setNotaSistema(s.id, n))} />}
-            <button style={{ ...delBtn, marginLeft: "auto" }} onClick={() => run(() => removeSistema(s.id))} aria-label="Remover">×</button>
+          <div key={s.id} style={{ border: s.ehNecessidade ? "1px solid #f0c0bd" : "1px solid #e3ebf1", borderRadius: 10, padding: "8px 12px", background: s.ehNecessidade ? "#fff9f8" : "#fff" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontWeight: 700, color: INK, fontSize: 13.5, minWidth: 110 }}>{s.nome}</span>
+              {s.ehNecessidade
+                ? <span style={{ fontSize: 11.5, fontWeight: 700, color: "#c0392b", background: "#fdecea", padding: "3px 9px", borderRadius: 999 }}>necessidade</span>
+                : <Slider value={s.nota} onChange={(n) => run(() => setNotaSistema(s.id, n))} />}
+              <button style={{ ...delBtn, marginLeft: "auto" }} onClick={() => run(() => removeSistema(s.id))} aria-label="Remover">×</button>
+            </div>
+            {s.ehNecessidade && s.justificativa && (
+              <p style={{ margin: "6px 0 0 0", fontSize: 12.5, color: "#8a5a52", lineHeight: 1.4 }}>
+                <b>Como melhoraria a gestão:</b> {s.justificativa}
+              </p>
+            )}
           </div>
         ))}
       </div>
-      <CadastroInline placeholder="Nome do sistema (ex.: ERP)" onAdd={(nome) => run(() => addSistema(setorId, nome))} />
-      <p style={{ fontSize: 12, color: "#8493a0", marginTop: 8 }}>
-        Falta um sistema importante? <button onClick={() => { const n = prompt("Sistema que falta (vira necessidade):"); if (n?.trim()) run(() => addSistema(setorId, n.trim(), true)); }} style={{ border: "none", background: "transparent", color: BLUE, fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontSize: 12 }}>Registrar necessidade</button>
-      </p>
+      <CadastroInline placeholder="Nome do sistema que você USA (ex.: ERP)" onAdd={(nome) => run(() => addSistema(setorId, nome))} />
+
+      {!necAberta ? (
+        <p style={{ fontSize: 12.5, color: "#8493a0", marginTop: 10 }}>
+          Falta um sistema importante?{" "}
+          <button onClick={() => setNecAberta(true)} style={{ border: "none", background: "transparent", color: BLUE, fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontSize: 12.5 }}>
+            Registrar necessidade
+          </button>
+        </p>
+      ) : (
+        <div style={{ marginTop: 10, border: "1.5px dashed #e0908a", background: "#fff9f8", borderRadius: 12, padding: 14, display: "grid", gap: 8 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 800, color: "#c0392b" }}>Sistema que falta (vira necessidade)</div>
+          <input autoFocus value={necNome} placeholder="Nome do sistema (ex.: MRP Local)" onChange={(e) => setNecNome(e.target.value)} style={inputStyle} />
+          <textarea value={necJust} placeholder="Explique como esse sistema poderia melhorar a sua gestão…" onChange={(e) => setNecJust(e.target.value)} rows={2}
+            style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button style={addBtn} onClick={salvarNecessidade}>Registrar</button>
+            <button onClick={() => { setNecAberta(false); setNecNome(""); setNecJust(""); }} style={{ border: "1px solid #dce6ee", background: "#fff", color: "#5b6b78", fontWeight: 700, fontSize: 12.5, padding: "8px 14px", borderRadius: 8, cursor: "pointer" }}>Cancelar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

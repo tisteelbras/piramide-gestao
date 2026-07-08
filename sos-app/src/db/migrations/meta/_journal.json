@@ -8,6 +8,13 @@
       "when": 1783426746650,
       "tag": "0000_gigantic_lord_tyger",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783508720206,
+      "tag": "0001_short_wild_pack",
+      "breakpoints": true
     }
   ]
 }

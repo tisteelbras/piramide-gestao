@@ -1,0 +1,1 @@
+ALTER TABLE "sistema" ADD COLUMN "justificativa" text;

@@ -29,8 +29,8 @@ export default function DashboardExec({
     <div style={{ minHeight: "100vh", padding: "clamp(16px,4vw,44px)" }}>
       <header style={{ maxWidth: 1160, margin: "0 auto 24px", display: "flex", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 260 }}>
-          <Image src="/steelbras-logo.svg" alt="Steelbras" width={130} height={47} style={{ height: 38, width: "auto" }} priority />
-          <h1 style={{ fontSize: "clamp(22px,3.4vw,32px)", fontWeight: 800, margin: "12px 0 4px", color: "#0e1a24" }}>Dashboard executivo</h1>
+          <Image src="/steelbras-logo.svg" alt="Steelbras" width={130} height={47} style={{ height: 34, width: "auto" }} priority />
+          <h1 style={{ fontSize: "clamp(22px,3.4vw,32px)", fontWeight: 800, margin: "12px 0 4px", color: "#0e1a24" }}>NEXO · Dashboard executivo</h1>
           <p style={{ margin: 0, color: "#5b6b78", fontSize: 15 }}>Visão consolidada da maturidade de gestão por área.</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

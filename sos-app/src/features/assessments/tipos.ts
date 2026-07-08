@@ -12,6 +12,19 @@ export type CriterioAvaliado = {
   status: StatusResposta;
 };
 
+/** Resultado consolidado da maturidade NEXO de um setor (serializável). */
+export type MaturidadeDTO = {
+  porNivel: Record<Nivel, number>;
+  geral: number;
+  detalhe: {
+    visao: { revisadas: number; total: number };
+    tatico: { rh: number | null; sistemico: number | null; estrutural: number | null };
+    processos: { porProcesso: { nome: string; media: number | null }[] };
+    resultados: { itens: { titulo: string; nota: number | null }[] };
+  };
+  pendencias: number;
+};
+
 /** Metadados dos 4 níveis para exibição (rótulo, cor, ordem). */
 export const NIVEIS: {
   id: Nivel;
