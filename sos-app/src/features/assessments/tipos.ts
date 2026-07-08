@@ -2,6 +2,8 @@
 export type Nivel = "visao" | "tatico" | "processos" | "resultados";
 export type StatusResposta = "nao_iniciada" | "em_andamento" | "revisada";
 
+export type AnexoInfo = { id: string; nomeOriginal: string; tamanhoBytes: number | null };
+
 export type CriterioAvaliado = {
   id: string;
   nivel: Nivel;
@@ -10,6 +12,8 @@ export type CriterioAvaliado = {
   peso: number;
   nota: number | null;
   status: StatusResposta;
+  observacao: string | null;
+  anexos: AnexoInfo[];
 };
 
 /** Resultado consolidado da maturidade NEXO de um setor (serializável). */

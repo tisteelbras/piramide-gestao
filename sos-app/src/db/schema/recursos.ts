@@ -81,6 +81,8 @@ export const ativo = pgTable("ativo", {
   nome: text("nome").notNull(),
   categoria: categoriaAtivo("categoria").notNull().default("outro"),
   nota: numeric("nota", { precision: 5, scale: 2 }),
+  // Quando a nota não é 100, o gestor explica o porquê.
+  observacao: text("observacao"),
   ...timestamps,
 });
 

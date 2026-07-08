@@ -22,6 +22,7 @@ async function guard() {
 }
 function refresh() {
   revalidatePath("/setor/[id]", "page");
+  revalidatePath("/setor/[id]/avaliar", "page");
 }
 
 // ————— Colaboradores —————
@@ -102,6 +103,13 @@ export async function addAtivo(setorId: string, nome: string) {
 export async function setNotaAtivo(id: string, nota: number) {
   await guard();
   await db.update(ativo).set({ nota: String(nota), atualizadoEm: new Date() }).where(eq(ativo.id, id));
+  refresh();
+  return { ok: true as const };
+}
+/** Quando a nota não é 100, o gestor explica o porquê. */
+export async function setObservacaoAtivo(id: string, observacao: string) {
+  await guard();
+  await db.update(ativo).set({ observacao: observacao.trim() || null, atualizadoEm: new Date() }).where(eq(ativo.id, id));
   refresh();
   return { ok: true as const };
 }

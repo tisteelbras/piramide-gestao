@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import {
   addColaborador, removeColaborador, salvarNotaColaborador,
   addSistema, setNotaSistema, removeSistema,
-  addAtivo, setNotaAtivo, removeAtivo,
+  addAtivo, setNotaAtivo, removeAtivo, setObservacaoAtivo,
 } from "./actions";
 import { EIXOS_RH, type RecursosDoSetor } from "./tipos";
 
@@ -167,14 +167,33 @@ function AbaAtivos({ setorId, ativos, run }: { setorId: string; ativos: Recursos
       {ativos.length === 0 && <p style={{ fontSize: 13, color: "#a2afba", fontStyle: "italic", margin: "4px 0" }}>Nenhum ativo. Cadastre máquinas, hardware, estrutura…</p>}
       <div style={{ display: "grid", gap: 8 }}>
         {ativos.map((a) => (
-          <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, border: "1px solid #e3ebf1", borderRadius: 10, padding: "8px 12px" }}>
-            <span style={{ fontWeight: 700, color: INK, fontSize: 13.5, minWidth: 110 }}>{a.nome}</span>
-            <Slider value={a.nota} onChange={(n) => run(() => setNotaAtivo(a.id, n))} />
-            <button style={{ ...delBtn, marginLeft: "auto" }} onClick={() => run(() => removeAtivo(a.id))} aria-label="Remover">×</button>
-          </div>
+          <LinhaAtivo key={a.id} ativo={a} run={run} />
         ))}
       </div>
       <CadastroInline placeholder="Nome do ativo (ex.: Empilhadeira)" onAdd={(nome) => run(() => addAtivo(setorId, nome))} />
+    </div>
+  );
+}
+
+function LinhaAtivo({ ativo: a, run }: { ativo: RecursosDoSetor["ativos"][number]; run: (fn: () => Promise<unknown>) => void }) {
+  const [obs, setObs] = useState(a.observacao ?? "");
+  const incompleto = a.nota != null && a.nota < 100;
+  return (
+    <div style={{ border: "1px solid #e3ebf1", borderRadius: 10, padding: "8px 12px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ fontWeight: 700, color: INK, fontSize: 13.5, minWidth: 110 }}>{a.nome}</span>
+        <Slider value={a.nota} onChange={(n) => run(() => setNotaAtivo(a.id, n))} />
+        <button style={{ ...delBtn, marginLeft: "auto" }} onClick={() => run(() => removeAtivo(a.id))} aria-label="Remover">×</button>
+      </div>
+      {incompleto && (
+        <input
+          value={obs}
+          placeholder="Por que não está 100%? Explique…"
+          onChange={(e) => setObs(e.target.value)}
+          onBlur={() => run(() => setObservacaoAtivo(a.id, obs))}
+          style={{ marginTop: 8, width: "100%", border: "1px dashed #e0b96a", background: "#fffbf2", borderRadius: 8, padding: "7px 10px", fontSize: 12.5, color: INK }}
+        />
+      )}
     </div>
   );
 }

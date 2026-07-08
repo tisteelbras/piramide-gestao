@@ -14,7 +14,7 @@ export type ColaboradorComNotas = {
 };
 
 export type SistemaItem = { id: string; nome: string; nota: number | null; ehNecessidade: boolean; justificativa: string | null };
-export type AtivoItem = { id: string; nome: string; nota: number | null };
+export type AtivoItem = { id: string; nome: string; nota: number | null; observacao: string | null };
 
 export type RecursosDoSetor = {
   colaboradores: ColaboradorComNotas[];

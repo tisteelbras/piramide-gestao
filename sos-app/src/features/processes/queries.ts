@@ -2,7 +2,7 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { processo, avaliacaoProcesso } from "@/db/schema";
-import type { ProcessoComEixos } from "./tipos";
+import type { ProcessoComEixos, TipoProcesso } from "./tipos";
 
 export { EIXOS_PROCESSO } from "./tipos";
 export type { ProcessoComEixos } from "./tipos";
@@ -22,6 +22,6 @@ export async function carregarProcessos(setorId: string): Promise<ProcessoComEix
     const eixos = porProc.get(p.id) ?? {};
     const vals = Object.values(eixos).filter((v): v is number => v != null);
     const media = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
-    return { id: p.id, nome: p.nome, eixos, media };
+    return { id: p.id, nome: p.nome, tipo: p.tipo as TipoProcesso, eixos, media };
   });
 }

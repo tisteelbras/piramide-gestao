@@ -15,6 +15,13 @@
       "when": 1783508720206,
       "tag": "0001_short_wild_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783529824998,
+      "tag": "0002_spicy_chameleon",
+      "breakpoints": true
     }
   ]
 }

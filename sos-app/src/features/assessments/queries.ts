@@ -6,7 +6,7 @@
 import "server-only";
 import { and, eq, desc } from "drizzle-orm";
 import { db } from "@/db";
-import { empresa, setor, criterio, avaliacao, resposta } from "@/db/schema";
+import { empresa, setor, criterio, avaliacao, resposta, anexo } from "@/db/schema";
 import type { Nivel } from "./tipos";
 
 /** A empresa única (Steelbras) — enquanto for single-tenant. */
@@ -70,7 +70,16 @@ export async function carregarAvaliacaoDoSetor(setorId: string, autorId?: string
     listarCriterios(),
   ]);
   if (!setorRow) return null;
-  const respostas = await respostasPorCriterio(aval.id);
+  const [respostas, anexos] = await Promise.all([
+    respostasPorCriterio(aval.id),
+    db.query.anexo.findMany({ where: eq(anexo.avaliacaoId, aval.id) }),
+  ]);
+  const anexosPorCriterio = new Map<string, typeof anexos>();
+  for (const a of anexos) {
+    const arr = anexosPorCriterio.get(a.criterioId) ?? [];
+    arr.push(a);
+    anexosPorCriterio.set(a.criterioId, arr);
+  }
   return {
     setor: setorRow,
     avaliacaoId: aval.id,
@@ -82,6 +91,12 @@ export async function carregarAvaliacaoDoSetor(setorId: string, autorId?: string
       peso: Number(c.peso),
       nota: respostas.get(c.id)?.nota != null ? Number(respostas.get(c.id)!.nota) : null,
       status: respostas.get(c.id)?.status ?? "nao_iniciada",
+      observacao: respostas.get(c.id)?.observacao ?? null,
+      anexos: (anexosPorCriterio.get(c.id) ?? []).map((a) => ({
+        id: a.id,
+        nomeOriginal: a.nomeOriginal,
+        tamanhoBytes: a.tamanhoBytes,
+      })),
     })),
   };
 }

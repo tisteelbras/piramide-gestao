@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { processo, avaliacaoProcesso, type eixoProcesso } from "@/db/schema";
 import { auth } from "@/auth";
 import { getEmpresa } from "@/features/assessments/queries";
+import type { TipoProcesso } from "./tipos";
 
 type EixoProcesso = (typeof eixoProcesso.enumValues)[number];
 
@@ -14,12 +15,15 @@ async function guard() {
   if (!s?.user) throw new Error("Não autenticado.");
   return getEmpresa();
 }
-const refresh = () => revalidatePath("/setor/[id]", "page");
+const refresh = () => {
+  revalidatePath("/setor/[id]", "page");
+  revalidatePath("/setor/[id]/avaliar", "page");
+};
 
-export async function addProcesso(setorId: string, nome: string) {
+export async function addProcesso(setorId: string, nome: string, tipo: TipoProcesso = "outro") {
   const emp = await guard();
   if (!nome.trim()) return { ok: false as const };
-  await db.insert(processo).values({ empresaId: emp.id, setorId, nome: nome.trim() });
+  await db.insert(processo).values({ empresaId: emp.id, setorId, nome: nome.trim(), tipo });
   refresh();
   return { ok: true as const };
 }

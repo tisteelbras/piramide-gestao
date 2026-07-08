@@ -5,3 +5,4 @@ export * from "./avaliacao";
 export * from "./recursos";
 export * from "./processos";
 export * from "./resultado";
+export * from "./anexos";

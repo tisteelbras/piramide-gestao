@@ -34,5 +34,6 @@ export async function salvarResposta(input: {
   }
 
   revalidatePath("/setor/[id]", "page");
+  revalidatePath("/setor/[id]/avaliar", "page");
   return { ok: true as const };
 }

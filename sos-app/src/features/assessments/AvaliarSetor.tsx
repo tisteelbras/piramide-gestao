@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import PainelRecursos from "@/features/resources/PainelRecursos";
 import PainelProcessos from "@/features/processes/PainelProcessos";
 import PainelResultados from "@/features/results/PainelResultados";
 import { EIXOS_RH, type RecursosDoSetor } from "@/features/resources/tipos";
-import type { ProcessoComEixos } from "@/features/processes/tipos";
+import { TIPOS_PROCESSO, type ProcessoComEixos } from "@/features/processes/tipos";
 import type { ResultadosDoSetor } from "@/features/results/tipos";
 import { salvarResposta } from "./actions";
+import { salvarObservacaoEtapa, uploadAnexo, removeAnexo } from "./anexos-actions";
 import { NIVEIS, type CriterioAvaliado, type Nivel } from "./tipos";
 
 const arred = (n: number) => Math.round(n);
@@ -38,8 +39,21 @@ export default function AvaliarSetor({
   const [salvando, setSalvando] = useState(false);
 
   const itensVisao = criterios.filter((c) => c.nivel === "visao");
-  const itensResultado = criterios.filter(
-    (c) => c.nivel === "resultados" && ["governanca", "monitoramento", "desempenho"].includes(c.grupo),
+
+  // Tópicos de RESULTADO calculados dos processos tipados.
+  const topicosResultado = useMemo(
+    () =>
+      TIPOS_PROCESSO.filter((t) => t.resultado).map((t) => {
+        const doTipo = processos.filter((p) => p.tipo === t.id && p.media !== null);
+        return {
+          tipo: t.id,
+          titulo: t.resultado!,
+          origem: t.label,
+          media: media(doTipo.map((p) => p.media!)),
+          processos: doTipo.map((p) => ({ nome: p.nome, media: p.media! })),
+        };
+      }),
+    [processos],
   );
 
   // % ao vivo de cada nível (modelo NEXO)
@@ -57,13 +71,10 @@ export default function AvaliarSetor({
     const tatico = media(grupos) ?? 0;
 
     const processosPct = media(processos.map((p) => p.media).filter((m): m is number => m !== null)) ?? 0;
-    const resultadosPct = media(itensResultado.map((i) => i.nota).filter((n): n is number => n != null)) ?? 0;
+    const resultadosPct = media(topicosResultado.map((t) => t.media).filter((m): m is number => m !== null)) ?? 0;
 
-    return {
-      visao, tatico, processos: processosPct, resultados: resultadosPct,
-      grupos: { rh, sist, estr },
-    };
-  }, [itensVisao, itensResultado, recursos, processos]);
+    return { visao, tatico, processos: processosPct, resultados: resultadosPct, grupos: { rh, sist, estr } };
+  }, [itensVisao, recursos, processos, topicosResultado]);
 
   function salva(id: string, patch: Partial<CriterioAvaliado>) {
     const alvo = criterios.find((c) => c.id === id)!;
@@ -90,7 +101,6 @@ export default function AvaliarSetor({
       </header>
 
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        {/* Abas de nível */}
         <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
           {NIVEIS.map((n) => {
             const ativo = nivelAtivo === n.id;
@@ -111,30 +121,22 @@ export default function AvaliarSetor({
             <span style={{ marginLeft: "auto", fontSize: 20, fontWeight: 800, color: metaNivel.cor, fontVariantNumeric: "tabular-nums" }}>{arred(pctDoNivel[nivelAtivo])}%</span>
           </div>
 
-          {/* ——— N1 VISÃO: checklist Revisado / Não revisado ——— */}
+          {/* ——— N1 VISÃO ——— */}
           {nivelAtivo === "visao" && (
             <div>
               <p style={{ margin: "0 0 14px", fontSize: 13.5, color: "#8493a0" }}>
-                Marque cada etapa que já foi <b>revisada com sinceridade</b>. O topo da pirâmide preenche conforme você avança — <b style={{ color: "#0e1a24" }}>{itensVisao.filter((c) => c.status === "revisada").length}</b> de <b style={{ color: "#0e1a24" }}>{itensVisao.length}</b> revisadas.
+                Marque cada etapa que já foi <b>revisada com sinceridade</b> — <b style={{ color: "#0e1a24" }}>{itensVisao.filter((c) => c.status === "revisada").length}</b> de <b style={{ color: "#0e1a24" }}>{itensVisao.length}</b> revisadas. Cada etapa aceita descrição e documentos anexos.
               </p>
               <div style={{ display: "grid", gap: 8 }}>
-                {itensVisao.map((c) => {
-                  const revisada = c.status === "revisada";
-                  return (
-                    <button key={c.id}
-                      onClick={() => salva(c.id, revisada ? { status: "nao_iniciada", nota: null } : { status: "revisada", nota: 100 })}
-                      style={{ display: "flex", alignItems: "center", gap: 12, textAlign: "left", border: revisada ? "2px solid #47ad4b" : "1px solid #e3ebf1", background: revisada ? "#f2faf3" : "#fff", borderRadius: 12, padding: "13px 15px", cursor: "pointer", transition: "all .15s" }}>
-                      <span style={{ width: 24, height: 24, borderRadius: 7, flexShrink: 0, display: "grid", placeItems: "center", background: revisada ? "#47ad4b" : "#fff", border: revisada ? "none" : "2px solid #c6d3de", color: "#fff", fontWeight: 800, fontSize: 14 }}>{revisada ? "✓" : ""}</span>
-                      <span style={{ flex: 1, fontSize: 14.5, fontWeight: 700, color: "#0e1a24" }}>{c.titulo}</span>
-                      <span style={{ fontSize: 11.5, fontWeight: 800, color: revisada ? "#33853a" : "#8493a0", textTransform: "uppercase", letterSpacing: ".04em" }}>{revisada ? "Revisado" : "Não revisado"}</span>
-                    </button>
-                  );
-                })}
+                {itensVisao.map((c) => (
+                  <EtapaVisao key={c.id} etapa={c} avaliacaoId={avaliacaoId}
+                    onToggle={() => salva(c.id, c.status === "revisada" ? { status: "nao_iniciada", nota: null } : { status: "revisada", nota: 100 })} />
+                ))}
               </div>
             </div>
           )}
 
-          {/* ——— N2 RECURSOS: 3 grupos com médias ——— */}
+          {/* ——— N2 RECURSOS ——— */}
           {nivelAtivo === "tatico" && (
             <div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 4 }}>
@@ -153,30 +155,43 @@ export default function AvaliarSetor({
             </div>
           )}
 
-          {/* ——— N3 PROCESSOS: cards com 5 etapas ——— */}
+          {/* ——— N3 PROCESSOS ——— */}
           {nivelAtivo === "processos" && (
             <div>
               <p style={{ margin: "0 0 4px", fontSize: 13.5, color: "#8493a0" }}>
-                Cadastre cada processo da sua operação. Cada card expande com as 5 etapas de avaliação; a média geral considera todos os processos ativos.
+                Cadastre cada processo da operação. Processos dos tipos <b>Avaliação de desempenho, Governança, Monitoramento e KPI</b> alimentam automaticamente o nível Resultado.
               </p>
               <PainelProcessos setorId={setorId} processos={processos} />
             </div>
           )}
 
-          {/* ——— N4 RESULTADO: 3 avaliações sinceras + indicadores ——— */}
+          {/* ——— N4 RESULTADO: resultado de processo aplicado ——— */}
           {nivelAtivo === "resultados" && (
             <div>
-              <div style={{ display: "grid", gap: 10, marginBottom: 6 }}>
-                {itensResultado.map((c) => (
-                  <div key={c.id} style={{ border: "1px solid #e3ebf1", borderRadius: 12, padding: "12px 14px" }}>
-                    <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0e1a24", marginBottom: 8 }}>{c.titulo}</div>
+              <p style={{ margin: "0 0 14px", fontSize: 13.5, color: "#8493a0" }}>
+                O Resultado <b>não se preenche</b>: ele é a consequência dos processos aplicados. Cadastre um processo do tipo correspondente em <b>Processos</b> e o resultado aparece aqui.
+              </p>
+              <div style={{ display: "grid", gap: 10 }}>
+                {topicosResultado.map((t) => (
+                  <div key={t.tipo} style={{ border: "1px solid #e3ebf1", borderRadius: 12, padding: "13px 15px", background: t.media != null ? "#fff" : "#f8fafc" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 11.5, color: "#8493a0", fontWeight: 600, width: 110 }}>Avaliação sincera</span>
-                      <input type="range" min={0} max={100} step={5} value={c.nota ?? 0}
-                        onChange={(e) => salva(c.id, { nota: Number(e.target.value), status: "em_andamento" })}
-                        style={{ flex: 1, accentColor: metaNivel.cor }} />
-                      <span style={{ width: 40, textAlign: "right", fontWeight: 800, color: metaNivel.corDark, fontVariantNumeric: "tabular-nums", fontSize: 14 }}>{c.nota ?? 0}</span>
+                      <span style={{ fontSize: 14.5, fontWeight: 800, color: t.media != null ? "#0e1a24" : "#8493a0" }}>{t.titulo}</span>
+                      <span style={{ marginLeft: "auto", fontSize: 19, fontWeight: 800, color: t.media != null ? "#33853a" : "#c0ccd6", fontVariantNumeric: "tabular-nums" }}>
+                        {t.media != null ? `${arred(t.media)}%` : "—"}
+                      </span>
                     </div>
+                    {t.processos.length > 0 ? (
+                      <div style={{ marginTop: 6, fontSize: 12.5, color: "#5b6b78" }}>
+                        {t.processos.map((p) => `${p.nome} (${arred(p.media)}%)`).join(" · ")}
+                      </div>
+                    ) : (
+                      <div style={{ marginTop: 6, fontSize: 12.5, color: "#a2afba" }}>
+                        Nenhum processo do tipo “{t.origem}” ainda.{" "}
+                        <button onClick={() => setNivelAtivo("processos")} style={{ border: "none", background: "transparent", color: "#0068a9", fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontSize: 12.5, padding: 0 }}>
+                          Cadastrar em Processos
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -185,6 +200,104 @@ export default function AvaliarSetor({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ————— Etapa da Visão: toggle + detalhes (descrição e anexos) —————
+function EtapaVisao({
+  etapa,
+  avaliacaoId,
+  onToggle,
+}: {
+  etapa: CriterioAvaliado;
+  avaliacaoId: string;
+  onToggle: () => void;
+}) {
+  const [aberta, setAberta] = useState(false);
+  const [desc, setDesc] = useState(etapa.observacao ?? "");
+  const [anexos, setAnexos] = useState(etapa.anexos);
+  const [enviando, setEnviando] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [, start] = useTransition();
+  const revisada = etapa.status === "revisada";
+  const temDetalhe = (etapa.observacao?.length ?? 0) > 0 || anexos.length > 0;
+
+  const persisteDesc = (valor: string) =>
+    start(async () => { await salvarObservacaoEtapa({ avaliacaoId, criterioId: etapa.id, observacao: valor }); });
+  // Salva com debounce enquanto digita, e também no blur.
+  const aoDigitar = (valor: string) => {
+    setDesc(valor);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => persisteDesc(valor), 1200);
+  };
+  const salvarDesc = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    persisteDesc(desc);
+  };
+
+  const enviarArquivo = (f: File) => {
+    setEnviando(true);
+    start(async () => {
+      const fd = new FormData();
+      fd.append("avaliacaoId", avaliacaoId);
+      fd.append("criterioId", etapa.id);
+      fd.append("arquivo", f);
+      const r = await uploadAnexo(fd);
+      if (r.ok) setAnexos((a) => [...a, { id: "temp-" + Date.now(), nomeOriginal: f.name, tamanhoBytes: f.size }]);
+      setEnviando(false);
+      if (fileRef.current) fileRef.current.value = "";
+    });
+  };
+
+  return (
+    <div style={{ border: revisada ? "2px solid #47ad4b" : "1px solid #e3ebf1", background: revisada ? "#f2faf3" : "#fff", borderRadius: 12, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 15px" }}>
+        <button onClick={onToggle} aria-label={revisada ? "Desmarcar" : "Marcar como revisado"}
+          style={{ width: 24, height: 24, borderRadius: 7, flexShrink: 0, display: "grid", placeItems: "center", background: revisada ? "#47ad4b" : "#fff", border: revisada ? "none" : "2px solid #c6d3de", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
+          {revisada ? "✓" : ""}
+        </button>
+        <span style={{ flex: 1, fontSize: 14.5, fontWeight: 700, color: "#0e1a24" }}>{etapa.titulo}</span>
+        <span style={{ fontSize: 11.5, fontWeight: 800, color: revisada ? "#33853a" : "#8493a0", textTransform: "uppercase", letterSpacing: ".04em" }}>{revisada ? "Revisado" : "Não revisado"}</span>
+        <button onClick={() => setAberta((a) => !a)} aria-label={`Detalhes e anexos de ${etapa.titulo}`}
+          style={{ border: "1px solid #dce6ee", background: "#fff", color: temDetalhe ? "#0068a9" : "#8493a0", fontWeight: 700, fontSize: 11.5, padding: "5px 10px", borderRadius: 8, cursor: "pointer", whiteSpace: "nowrap" }}>
+          📎 {anexos.length > 0 ? anexos.length : ""} {aberta ? "▴" : "▾"}
+        </button>
+      </div>
+
+      {aberta && (
+        <div style={{ padding: "0 15px 14px 51px", display: "grid", gap: 8 }}>
+          <textarea value={desc} onChange={(e) => aoDigitar(e.target.value)} onBlur={salvarDesc} rows={2}
+            placeholder="Descrição / contexto desta etapa (salva ao sair do campo)…"
+            style={{ border: "1px solid #dce6ee", borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "#0e1a24", resize: "vertical", fontFamily: "inherit", background: "#fff" }} />
+          {anexos.length > 0 && (
+            <div style={{ display: "grid", gap: 4 }}>
+              {anexos.map((a) => (
+                <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
+                  <a href={a.id.startsWith("temp-") ? undefined : `/api/anexos/${a.id}`}
+                    style={{ color: "#0068a9", fontWeight: 700, textDecoration: "none" }}>
+                    📄 {a.nomeOriginal}
+                  </a>
+                  {a.tamanhoBytes != null && <span style={{ color: "#a2afba" }}>({Math.max(1, Math.round(a.tamanhoBytes / 1024))} KB)</span>}
+                  {!a.id.startsWith("temp-") && (
+                    <button onClick={() => { setAnexos((l) => l.filter((x) => x.id !== a.id)); start(async () => { await removeAnexo(a.id); }); }}
+                      style={{ border: "none", background: "transparent", color: "#c0ccd6", cursor: "pointer", fontSize: 15, lineHeight: 1 }} aria-label="Remover anexo">×</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          <div>
+            <input ref={fileRef} type="file" style={{ display: "none" }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) enviarArquivo(f); }} />
+            <button onClick={() => fileRef.current?.click()} disabled={enviando}
+              style={{ border: "1.5px dashed #9fc0d8", background: "transparent", color: "#0068a9", fontWeight: 700, fontSize: 12.5, padding: "7px 12px", borderRadius: 8, cursor: "pointer" }}>
+              {enviando ? "Enviando…" : "+ Anexar documento"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

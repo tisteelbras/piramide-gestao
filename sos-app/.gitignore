@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+
+# anexos enviados pelos usuários (ficam só no servidor)
+/uploads

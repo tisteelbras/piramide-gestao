@@ -19,6 +19,17 @@ export const eixoProcesso = pgEnum("eixo_processo", [
   "automacao",
 ]);
 
+/** Tipo do processo (modelo NEXO): processos tipados alimentam o nível
+ *  RESULTADOS ("Resultado da Avaliação de desempenho", etc.); tipo
+ *  "outro" conta apenas no nível PROCESSOS. */
+export const tipoProcesso = pgEnum("tipo_processo", [
+  "desempenho",
+  "governanca",
+  "monitoramento",
+  "kpi",
+  "outro",
+]);
+
 export const processo = pgTable("processo", {
   id: pk(),
   empresaId: uuid("empresa_id")
@@ -29,6 +40,7 @@ export const processo = pgTable("processo", {
     .references(() => setor.id, { onDelete: "cascade" }),
   nome: text("nome").notNull(),
   descricao: text("descricao"),
+  tipo: tipoProcesso("tipo").notNull().default("outro"),
   ...timestamps,
 });
 

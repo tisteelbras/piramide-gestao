@@ -7,8 +7,9 @@
 //                eixos), Sistêmico (média dos sistemas avaliados),
 //                Estrutural (média dos ativos)
 //   PROCESSOS  → média das médias de cada processo (5 etapas)
-//   RESULTADOS → média das 3 avaliações sinceras (governança,
-//                monitoramento, avaliação de desempenho)
+//   RESULTADOS → resultado de processo aplicado: média dos processos
+//                TIPADOS (desempenho, governança, monitoramento, kpi).
+//                Processos tipo "outro" contam só em PROCESSOS.
 //
 // Usado pela visualização do setor, hub, dashboard e relatório.
 // ————————————————————————————————————————————————
@@ -89,10 +90,21 @@ export async function maturidadeDoSetor(setorId: string): Promise<MaturidadeSeto
   const porProcesso = procs.map((p) => ({ nome: p.nome, media: media(notasPorProc.get(p.id) ?? []) }));
   const pctProcessos = media(porProcesso.map((p) => p.media).filter((m): m is number => m !== null)) ?? 0;
 
-  // ——— RESULTADOS: as 3 avaliações sinceras ———
-  const itensResultado = criterios
-    .filter((c) => c.nivel === "resultados" && ["governanca", "monitoramento", "desempenho"].includes(c.grupo))
-    .map((c) => ({ titulo: c.titulo, nota: mapaResp.get(c.id)?.nota != null ? Number(mapaResp.get(c.id)!.nota) : null }));
+  // ——— RESULTADOS: resultado de processo aplicado ———
+  // Cada tópico mostra a média dos processos daquele tipo.
+  const TOPICOS_RESULTADO: { tipo: string; titulo: string }[] = [
+    { tipo: "desempenho", titulo: "Resultado da Avaliação de desempenho" },
+    { tipo: "governanca", titulo: "Resultado de Governança e controles" },
+    { tipo: "monitoramento", titulo: "Resultado do Monitoramento contínuo" },
+    { tipo: "kpi", titulo: "Resultado de KPI" },
+  ];
+  const itensResultado = TOPICOS_RESULTADO.map((t) => {
+    const doTipo = procs
+      .filter((p) => p.tipo === t.tipo)
+      .map((p) => media(notasPorProc.get(p.id) ?? []))
+      .filter((m): m is number => m !== null);
+    return { titulo: t.titulo, nota: media(doTipo) };
+  });
   const pctResultados = media(itensResultado.map((i) => i.nota).filter((n): n is number => n !== null)) ?? 0;
 
   const porNivel: Record<Nivel, number> = {

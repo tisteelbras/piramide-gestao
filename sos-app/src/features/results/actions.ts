@@ -17,7 +17,10 @@ async function guard() {
   if (!s?.user) throw new Error("Não autenticado.");
   return getEmpresa();
 }
-const refresh = () => revalidatePath("/setor/[id]", "page");
+const refresh = () => {
+  revalidatePath("/setor/[id]", "page");
+  revalidatePath("/setor/[id]/avaliar", "page");
+};
 
 // ————— Indicadores (KPIs) —————
 export async function addIndicador(setorId: string, nome: string, ehAusencia = false) {

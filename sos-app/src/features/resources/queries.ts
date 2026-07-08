@@ -30,6 +30,6 @@ export async function carregarRecursos(setorId: string, avaliacaoId: string) {
       notas: notasPorColab.get(c.id) ?? {},
     })),
     sistemas: sistemas.map((s) => ({ id: s.id, nome: s.nome, nota: s.nota != null ? Number(s.nota) : null, ehNecessidade: s.ehNecessidade, justificativa: s.justificativa })),
-    ativos: ativos.map((a) => ({ id: a.id, nome: a.nome, nota: a.nota != null ? Number(a.nota) : null })),
+    ativos: ativos.map((a) => ({ id: a.id, nome: a.nome, nota: a.nota != null ? Number(a.nota) : null, observacao: a.observacao })),
   };
 }

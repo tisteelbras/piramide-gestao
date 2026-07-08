@@ -25,7 +25,7 @@ export default function AvaliacaoSetor({
     processos: detalhe.processos.porProcesso.length
       ? `${detalhe.processos.porProcesso.length} processo(s) ativo(s)`
       : "Nenhum processo cadastrado",
-    resultados: `${detalhe.resultados.itens.filter((i) => i.nota != null).length} de ${detalhe.resultados.itens.length} avaliações respondidas`,
+    resultados: `${detalhe.resultados.itens.filter((i) => i.nota != null).length} de ${detalhe.resultados.itens.length} resultados alimentados por processos`,
   };
 
   return (
