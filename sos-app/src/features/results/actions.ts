@@ -4,14 +4,13 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
-  indicador, recomendacao, sistema, processo, avaliacaoProcesso,
-  colaborador, avaliacaoColaborador, criterio, resposta, avaliacao,
+  indicador, recomendacao, sistema,
+  colaborador, avaliacaoColaborador, avaliacao,
 } from "@/db/schema";
 import { auth } from "@/auth";
 import { getEmpresa } from "@/features/assessments/queries";
-import { consolidarPorNivel } from "@/features/assessments/consolidar";
+import { maturidadeDoSetor } from "@/features/assessments/maturidade-setor";
 import { gerarRecomendacoes, type RetratoSetor } from "@/domain/recomendacoes";
-import type { CriterioAvaliado, Nivel } from "@/features/assessments/tipos";
 
 async function guard() {
   const s = await auth();
@@ -41,59 +40,24 @@ export async function toggleAusenciaIndicador(id: string, ehAusencia: boolean) {
   return { ok: true as const };
 }
 
-// ————— Gerar diagnóstico (recomendações por regra) —————
+// ————— Gerar diagnóstico (recomendações por regra, modelo NEXO) —————
 export async function gerarDiagnostico(setorId: string) {
   const emp = await guard();
 
-  // 1) Monta o retrato do setor a partir do banco.
+  // 1) Retrato do setor: maturidade pelo motor NEXO + gatilhos diretos.
+  const m = await maturidadeDoSetor(setorId);
   const aval = await db.query.avaliacao.findFirst({
     where: and(eq(avaliacao.setorId, setorId), eq(avaliacao.empresaId, emp.id)),
     orderBy: (a, { desc }) => [desc(a.criadoEm)],
   });
-
-  const [criterios, respostas, sistemas, procs, notasProc, colabs, notasColab, kpis] = await Promise.all([
-    db.query.criterio.findMany({ where: eq(criterio.empresaId, emp.id) }),
-    aval ? db.query.resposta.findMany({ where: eq(resposta.avaliacaoId, aval.id) }) : Promise.resolve([]),
+  const [sistemas, colabs, notasColab, kpis] = await Promise.all([
     db.query.sistema.findMany({ where: eq(sistema.setorId, setorId) }),
-    db.query.processo.findMany({ where: eq(processo.setorId, setorId) }),
-    db.query.avaliacaoProcesso.findMany(),
     db.query.colaborador.findMany({ where: eq(colaborador.setorId, setorId) }),
     aval ? db.query.avaliacaoColaborador.findMany({ where: eq(avaliacaoColaborador.avaliacaoId, aval.id) }) : Promise.resolve([]),
     db.query.indicador.findMany({ where: eq(indicador.setorId, setorId) }),
   ]);
 
-  // Maturidade por nível (via consolidação dos critérios)
-  const mapaResp = new Map(respostas.map((r) => [r.criterioId, r]));
-  const avaliados: CriterioAvaliado[] = criterios.map((c) => ({
-    id: c.id, nivel: c.nivel as Nivel, grupo: c.grupo, titulo: c.titulo, peso: Number(c.peso),
-    nota: mapaResp.get(c.id)?.nota != null ? Number(mapaResp.get(c.id)!.nota) : null,
-    status: mapaResp.get(c.id)?.status ?? "nao_iniciada",
-  }));
-  const { porNivel } = consolidarPorNivel(avaliados);
-  const maturidadePorNivel = {
-    visao: porNivel.visao.preenchimento,
-    tatico: porNivel.tatico.preenchimento,
-    processos: porNivel.processos.preenchimento,
-    resultados: porNivel.resultados.preenchimento,
-  };
-
-  // Processos fracos (média < 40)
-  const notasPorProc = new Map<string, number[]>();
-  for (const n of notasProc) {
-    if (n.nota == null) continue;
-    const arr = notasPorProc.get(n.processoId) ?? [];
-    arr.push(Number(n.nota));
-    notasPorProc.set(n.processoId, arr);
-  }
-  const processosFracos = procs
-    .map((p) => {
-      const arr = notasPorProc.get(p.id) ?? [];
-      const media = arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
-      return { nome: p.nome, media };
-    })
-    .filter((p) => p.media < 40 && (notasPorProc.get(procs.find((x) => x.nome === p.nome)!.id)?.length ?? 0) > 0);
-
-  // Colaboradores com média baixa (< 40)
+  // Colaboradores com média baixa (< 40).
   const notasPorColab = new Map<string, number[]>();
   for (const n of notasColab) {
     if (n.nota == null) continue;
@@ -110,10 +74,12 @@ export async function gerarDiagnostico(setorId: string) {
     .map((c) => c.nome);
 
   const retrato: RetratoSetor = {
-    maturidadePorNivel,
+    maturidadePorNivel: m.porNivel,
     sistemasFaltantes: sistemas.filter((s) => s.ehNecessidade).map((s) => s.nome),
     kpisAusentes: kpis.filter((k) => k.ehAusencia).map((k) => k.nome),
-    processosFracos,
+    processosFracos: m.detalhe.processos.porProcesso
+      .filter((p): p is { nome: string; media: number } => p.media !== null && p.media < 40)
+      .map((p) => ({ nome: p.nome, media: Math.round(p.media) })),
     colaboradoresBaixaMedia,
   };
 
