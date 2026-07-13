@@ -5,7 +5,16 @@ import Piramide3D from "@/features/pyramid/Piramide3D";
 import ProximoPasso from "./ProximoPasso";
 import PendenciasAcionaveis from "./PendenciasAcionaveis";
 import { grauMaturidade, ROTULO_MATURIDADE } from "@/domain/maturidade";
+import { cor } from "@/design/tokens";
 import { NIVEIS, type MaturidadeDTO } from "./tipos";
+
+// Resumo das ferramentas geradas a partir deste setor (fecha o ciclo).
+type FerramentasResumo = {
+  planos5w2h: number;
+  acoes5w2h: number;
+  acoesConcluidas: number;
+  analisesIshikawa: number;
+};
 
 // Tela do setor = VISUALIZAÇÃO do modelo NEXO. A pirâmide preenche
 // conforme as avaliações; a edição acontece em /setor/[id]/avaliar.
@@ -13,10 +22,12 @@ export default function AvaliacaoSetor({
   setorId,
   setorNome,
   maturidade,
+  ferramentas,
 }: {
   setorId: string;
   setorNome: string;
   maturidade: MaturidadeDTO;
+  ferramentas?: FerramentasResumo;
 }) {
   const { porNivel, geral, detalhe } = maturidade;
   const fmt = (v: number | null) => (v != null ? `${Math.round(v)}%` : "—");
@@ -82,6 +93,38 @@ export default function AvaliacaoSetor({
       <div style={{ maxWidth: 1160, margin: "clamp(20px,3vw,32px) auto 0" }}>
         <PendenciasAcionaveis setorId={setorId} setorNome={setorNome} porNivel={porNivel} />
       </div>
+
+      {/* Ciclo fechado: ferramentas já geradas a partir deste setor. */}
+      {ferramentas && (ferramentas.planos5w2h > 0 || ferramentas.analisesIshikawa > 0) && (
+        <div style={{ maxWidth: 1160, margin: "clamp(20px,3vw,28px) auto 0" }}>
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: cor.ink, margin: "0 0 4px" }}>
+            Ações em andamento neste setor
+          </h2>
+          <p style={{ fontSize: 13, color: cor.faint, margin: "0 0 14px" }}>
+            O que já nasceu das lacunas deste setor. Acompanhe e conclua nas ferramentas.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+            {ferramentas.planos5w2h > 0 && (
+              <Link href="/ferramentas/5w2h" style={{ textDecoration: "none", background: cor.surface, border: "1px solid #e6edf3", borderRadius: 12, padding: "14px 16px", display: "block" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".05em", color: cor.faint }}>🗂️ Planos 5W2H</div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: cor.brand, fontVariantNumeric: "tabular-nums" }}>{ferramentas.planos5w2h}</div>
+                <div style={{ fontSize: 12.5, color: cor.muted }}>
+                  {ferramentas.acoes5w2h > 0
+                    ? `${ferramentas.acoesConcluidas} de ${ferramentas.acoes5w2h} ações concluídas`
+                    : "sem ações ainda"}
+                </div>
+              </Link>
+            )}
+            {ferramentas.analisesIshikawa > 0 && (
+              <Link href="/ferramentas/ishikawa" style={{ textDecoration: "none", background: cor.surface, border: "1px solid #e6edf3", borderRadius: 12, padding: "14px 16px", display: "block" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".05em", color: cor.faint }}>🐟 Análises Ishikawa</div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: cor.brand, fontVariantNumeric: "tabular-nums" }}>{ferramentas.analisesIshikawa}</div>
+                <div style={{ fontSize: 12.5, color: cor.muted }}>investigações de causa raiz</div>
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       <footer style={{ maxWidth: 1160, margin: "clamp(24px,4vw,40px) auto 0", paddingTop: 16, borderTop: "1px solid #d7e0e8", textAlign: "center" }}>
         <p style={{ margin: 0, color: "#8493a0", fontSize: 12.5, fontWeight: 600 }}>

@@ -1,5 +1,6 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { cache } from "react";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { plano5w2h, ishikawa, itemBcg, setor } from "@/db/schema";
 import { getEmpresa } from "@/features/assessments/queries";
@@ -67,6 +68,37 @@ export async function carregarIshikawa(): Promise<IshikawaComCausas[]> {
     })),
   }));
 }
+
+/** Ferramentas geradas a partir de um setor — fecha o ciclo diagnóstico
+ *  → ação: a tela do setor mostra o que já nasceu de suas lacunas. */
+export type FerramentasDoSetor = {
+  planos5w2h: number;
+  acoes5w2h: number;
+  acoesConcluidas: number;
+  analisesIshikawa: number;
+};
+
+export const ferramentasDoSetor = cache(
+  async (setorId: string): Promise<FerramentasDoSetor> => {
+    const emp = await getEmpresa();
+    const [planos, analises] = await Promise.all([
+      db.query.plano5w2h.findMany({
+        where: and(eq(plano5w2h.empresaId, emp.id), eq(plano5w2h.setorId, setorId)),
+        with: { acoes: true },
+      }),
+      db.query.ishikawa.findMany({
+        where: and(eq(ishikawa.empresaId, emp.id), eq(ishikawa.setorId, setorId)),
+      }),
+    ]);
+    const acoes = planos.flatMap((p) => p.acoes);
+    return {
+      planos5w2h: planos.length,
+      acoes5w2h: acoes.length,
+      acoesConcluidas: acoes.filter((a) => a.status === "concluida").length,
+      analisesIshikawa: analises.length,
+    };
+  },
+);
 
 export async function carregarBcg(): Promise<ItemBcgDTO[]> {
   const emp = await getEmpresa();

@@ -20,6 +20,9 @@ const refresh = (rota: string) => {
   revalidatePath(rota, "page");
   revalidatePath("/ferramentas", "page");
   revalidatePath("/dashboard", "page");
+  // A tela do setor mostra as ferramentas geradas dele; revalida a rota
+  // dinâmica para a contagem atualizar ao voltar da ferramenta.
+  revalidatePath("/setor/[id]", "page");
 };
 
 // —————————————————— 5W2H ——————————————————
