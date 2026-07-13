@@ -1,8 +1,7 @@
-import { auth } from "@/auth";
-import DashboardExec from "@/features/dashboard/DashboardExec";
-import { carregarDashboard } from "@/features/dashboard/queries";
+// O dashboard executivo passou a ser a tela inicial ("/").
+// Esta rota fica como redirecionamento para links antigos/favoritos.
+import { redirect } from "next/navigation";
 
-export default async function DashboardPage() {
-  const [session, dados] = await Promise.all([auth(), carregarDashboard()]);
-  return <DashboardExec usuarioNome={session?.user?.name ?? null} dados={dados} />;
+export default function DashboardPage() {
+  redirect("/");
 }
