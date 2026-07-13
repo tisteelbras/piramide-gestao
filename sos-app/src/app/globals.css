@@ -20,6 +20,17 @@
   --color-muted: #5b6b78;
   --color-faint: #8493a0;
   --color-hairline: #d9e2ea;
+  --color-ink-soft: #46586a;
+  --color-faint-2: #a2afba;
+
+  /* Estados semânticos (aviso, erro, sucesso) */
+  --color-warn: #d98a00;
+  --color-warn-fg: #8a5a08;
+  --color-warn-bg: #fdf3e0;
+  --color-danger: #c0392b;
+  --color-danger-bg: #fdecea;
+  --color-success: #33853a;
+  --color-success-bg: #eef7ef;
 
   /* Tipografia */
   --font-sans: var(--font-montserrat), system-ui, -apple-system, sans-serif;

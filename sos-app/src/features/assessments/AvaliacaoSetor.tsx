@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import Piramide3D from "@/features/pyramid/Piramide3D";
+import ProximoPasso from "./ProximoPasso";
+import PendenciasAcionaveis from "./PendenciasAcionaveis";
 import { grauMaturidade, ROTULO_MATURIDADE } from "@/domain/maturidade";
 import { NIVEIS, type MaturidadeDTO } from "./tipos";
 
@@ -31,16 +33,20 @@ export default function AvaliacaoSetor({
   return (
     <div style={{ minHeight: "100vh", padding: "clamp(16px,4vw,44px)" }}>
       <header style={{ maxWidth: 1160, margin: "0 auto 22px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <Link href="/" style={{ textDecoration: "none", color: "#5b6b78", fontWeight: 700, fontSize: 13, border: "1px solid #d9e2ea", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>‹ Setores</Link>
+        <Link href="/setores" style={{ textDecoration: "none", color: "#5b6b78", fontWeight: 700, fontSize: 13, border: "1px solid #d9e2ea", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>‹ Setores</Link>
         <h1 style={{ margin: 0, fontSize: "clamp(20px,3vw,28px)", fontWeight: 800, color: "#0e1a24" }}>{setorNome}</h1>
         <Link href={`/setor/${setorId}/avaliar`} style={{ marginLeft: "auto", textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#0068a9", padding: "10px 16px", borderRadius: 10, boxShadow: "0 4px 12px rgba(0,104,169,.25)" }}>✎ Avaliar</Link>
         <Link href={`/setor/${setorId}/relatorio`} style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "9px 14px", borderRadius: 10 }}>⭳ Relatório PDF</Link>
       </header>
 
+      <div style={{ maxWidth: 1160, margin: "0 auto" }}>
+        <ProximoPasso setorId={setorId} porNivel={porNivel} />
+      </div>
+
       <div style={{ maxWidth: 1160, margin: "0 auto", display: "grid", gridTemplateColumns: "minmax(300px,1fr) minmax(340px,1fr)", gap: "clamp(20px,3vw,44px)", alignItems: "center" }}>
         {/* Pirâmide 3D */}
         <div>
-          <Piramide3D preenchimento={porNivel} />
+          <Piramide3D preenchimento={porNivel} setorId={setorId} />
           <div style={{ textAlign: "center", marginTop: 4 }}>
             <div style={{ fontSize: 13, color: "#8493a0", fontWeight: 600 }}>Maturidade geral</div>
             <div style={{ fontSize: 40, fontWeight: 800, color: "#0068a9", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{Math.round(geral)}%</div>
@@ -71,6 +77,10 @@ export default function AvaliacaoSetor({
             );
           })}
         </div>
+      </div>
+
+      <div style={{ maxWidth: 1160, margin: "clamp(20px,3vw,32px) auto 0" }}>
+        <PendenciasAcionaveis setorId={setorId} setorNome={setorNome} porNivel={porNivel} />
       </div>
 
       <footer style={{ maxWidth: 1160, margin: "clamp(24px,4vw,40px) auto 0", paddingTop: 16, borderTop: "1px solid #d7e0e8", textAlign: "center" }}>

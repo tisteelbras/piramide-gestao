@@ -4,7 +4,14 @@ import { logoutAction } from "@/app/logout-action";
 import { grauMaturidade, ROTULO_MATURIDADE } from "@/domain/maturidade";
 import { NIVEIS } from "@/features/assessments/tipos";
 import Radar from "./Radar";
+import EvolucaoChart from "./EvolucaoChart";
+import CompararSetores from "./CompararSetores";
 import type { DadosDashboard } from "./queries";
+import { ROTULO_QUADRANTE, type Quadrante, type ResumoFerramentas } from "@/features/ferramentas/tipos";
+import { ROTULO_ESTADO, type GovernancaDTO } from "@/features/governanca/tipos";
+import Saudacao from "@/features/onboarding/Saudacao";
+import TutorialPopup from "@/features/onboarding/TutorialPopup";
+import { RESUMO_CONCEITO, TAGLINE } from "@/features/onboarding/conteudo";
 
 // Cor sequencial de maturidade (claro→escuro no azul da marca).
 // O número aparece em toda célula, então a cor é reforço, não a única info.
@@ -19,22 +26,41 @@ function corCelula(v: number): { bg: string; fg: string } {
 export default function DashboardExec({
   usuarioNome,
   dados,
+  ferramentas,
+  governanca,
+  inicio,
 }: {
   usuarioNome: string | null;
   dados: DadosDashboard;
+  // Agregado do hub de ferramentas — opcional para não acoplar o dashboard.
+  ferramentas?: ResumoFerramentas;
+  // Ciclos, metas e histórico — opcional pelo mesmo motivo.
+  governanca?: GovernancaDTO;
+  // Presente quando o dashboard é a tela inicial: saudação, resumo do
+  // conceito e tutorial de boas-vindas no 1º acesso.
+  inicio?: { mostrarTutorial: boolean };
 }) {
   const grauEmpresa = grauMaturidade(dados.mediaEmpresa);
+  const cicloDe = (setorId: string) => governanca?.ciclos.find((c) => c.setorId === setorId);
+  const atrasadas = governanca?.ciclos.filter((c) => c.estado === "atrasada") ?? [];
+  const emAlerta = governanca?.ciclos.filter((c) => c.estado === "alerta") ?? [];
 
   return (
     <div style={{ minHeight: "100vh", padding: "clamp(16px,4vw,44px)" }}>
+      {inicio?.mostrarTutorial && <TutorialPopup nome={usuarioNome} />}
+
       <header style={{ maxWidth: 1160, margin: "0 auto 24px", display: "flex", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 260 }}>
           <Image src="/steelbras-logo.svg" alt="Steelbras" width={130} height={47} style={{ height: 34, width: "auto" }} priority />
-          <h1 style={{ fontSize: "clamp(22px,3.4vw,32px)", fontWeight: 800, margin: "12px 0 4px", color: "#0e1a24" }}>NEXO · Dashboard executivo</h1>
-          <p style={{ margin: 0, color: "#5b6b78", fontSize: 15 }}>Visão consolidada da maturidade de gestão por área.</p>
+          {inicio && <div style={{ margin: "14px 0 2px" }}><Saudacao nome={usuarioNome} /></div>}
+          <h1 style={{ fontSize: inicio ? "clamp(17px,2.2vw,20px)" : "clamp(22px,3.4vw,32px)", fontWeight: 800, margin: inicio ? "6px 0 4px" : "12px 0 4px", color: inicio ? "#0068a9" : "#0e1a24" }}>NEXO · Dashboard executivo</h1>
+          {!inicio && <p style={{ margin: 0, color: "#5b6b78", fontSize: 15 }}>Visão consolidada da maturidade de gestão por área.</p>}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Link href="/" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>Setores</Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <Link href="/relatorio-executivo" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#47ad4b", padding: "9px 14px", borderRadius: 8, boxShadow: "0 4px 12px rgba(71,173,75,.3)" }}>⭳ Relatório executivo</Link>
+          <Link href="/setores" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#0068a9", padding: "9px 14px", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,104,169,.25)" }}>▦ Setores</Link>
+          <Link href="/ferramentas" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>🧰 Ferramentas</Link>
+          <Link href="/sobre" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>ℹ️ O NEXO</Link>
           {usuarioNome && (
             <>
               <span style={{ fontSize: 12.5, fontWeight: 700, color: "#46586a" }}>{usuarioNome}</span>
@@ -45,6 +71,17 @@ export default function DashboardExec({
       </header>
 
       <div style={{ maxWidth: 1160, margin: "0 auto", display: "grid", gap: 16 }}>
+        {/* Resumo do conceito (tela inicial) */}
+        {inicio && (
+          <div style={{ display: "flex", alignItems: "center", gap: 14, background: "linear-gradient(90deg, #eaf2f8, #f2faf3)", border: "1px solid #d7e8f4", borderRadius: 14, padding: "14px 18px", flexWrap: "wrap" }}>
+            <span aria-hidden style={{ fontSize: 24 }}>🧭</span>
+            <p style={{ margin: 0, flex: 1, minWidth: 240, fontSize: 13.5, color: "#0e4a70", lineHeight: 1.55, fontWeight: 600 }}>
+              <b>{TAGLINE}</b> {RESUMO_CONCEITO}
+            </p>
+            <Link href="/sobre" style={{ fontSize: 12.5, fontWeight: 800, color: "#0068a9", textDecoration: "none", whiteSpace: "nowrap" }}>Conheça o NEXO ›</Link>
+          </div>
+        )}
+
         {/* Linha 1: hero + radar + pendências */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr 1fr", gap: 16 }}>
           <Card>
@@ -63,6 +100,40 @@ export default function DashboardExec({
             <p style={{ margin: "12px 0 0", fontSize: 12.5, color: "#8493a0" }}>Critérios ainda não respondidos em todas as áreas.</p>
           </Card>
         </div>
+
+        {/* Governança: ciclos de avaliação + evolução histórica */}
+        {governanca && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 16 }}>
+            <Card>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <Titulo>Ciclos de avaliação</Titulo>
+                <Link href="/configuracoes" style={{ marginLeft: "auto", marginBottom: 12, fontSize: 12, fontWeight: 700, color: "#0068a9", textDecoration: "none" }}>⚙ governança ›</Link>
+              </div>
+              {atrasadas.length === 0 && emAlerta.length === 0 ? (
+                <p style={{ margin: 0, fontSize: 13, color: "#33853a", fontWeight: 700 }}>✓ Todas as áreas em dia com a análise NEXO.</p>
+              ) : (
+                <div style={{ display: "grid", gap: 6 }}>
+                  {[...atrasadas, ...emAlerta].map((c) => (
+                    <Link key={c.setorId} href={`/setor/${c.setorId}/avaliar`}
+                      style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 8, background: c.estado === "atrasada" ? "#fdecea" : "#fdf3e0", borderRadius: 8, padding: "8px 10px" }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: "#0e1a24" }}>{c.setorNome}</span>
+                      <span style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 800, color: c.estado === "atrasada" ? "#c0392b" : "#8a5a08", whiteSpace: "nowrap" }}>
+                        {c.estado === "atrasada" ? `${ROTULO_ESTADO.atrasada} há ${-c.diasRestantes}d` : `vence em ${c.diasRestantes}d`}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+              <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "#8493a0" }}>
+                Ritmo definido pela direção: reavaliação a cada <b>{governanca.politica.periodicidadeDias} dias</b> · meta padrão <b>{governanca.politica.metaPadrao}%</b>.
+              </p>
+            </Card>
+            <Card>
+              <Titulo>Evolução da maturidade</Titulo>
+              <EvolucaoChart historico={governanca.historico} mediaAtual={dados.mediaEmpresa} />
+            </Card>
+          </div>
+        )}
 
         {/* Heatmap setores × níveis */}
         <Card>
@@ -91,8 +162,15 @@ export default function DashboardExec({
                         <td key={n.id} style={{ textAlign: "center", background: c.bg, color: c.fg, fontWeight: 800, fontSize: 13, borderRadius: 8, padding: "10px 8px", fontVariantNumeric: "tabular-nums" }}>{v}</td>
                       );
                     })}
-                    {(() => { const c = corCelula(Math.round(s.geral)); return (
-                      <td style={{ textAlign: "center", background: c.bg, color: c.fg, fontWeight: 800, fontSize: 13.5, borderRadius: 8, padding: "10px 8px", fontVariantNumeric: "tabular-nums", border: "2px solid #fff", outline: "1px solid #e3ebf1" }}>{Math.round(s.geral)}</td>
+                    {(() => { const c = corCelula(Math.round(s.geral)); const t = cicloDe(s.id)?.tendencia; return (
+                      <td style={{ textAlign: "center", background: c.bg, color: c.fg, fontWeight: 800, fontSize: 13.5, borderRadius: 8, padding: "10px 8px", fontVariantNumeric: "tabular-nums", border: "2px solid #fff", outline: "1px solid #e3ebf1", whiteSpace: "nowrap" }}>
+                        {Math.round(s.geral)}
+                        {t != null && t !== 0 && (
+                          <span title={`${t > 0 ? "+" : ""}${t} pontos vs. último ciclo`} style={{ fontSize: 10, marginLeft: 4, color: t > 0 ? "#1f5b28" : "#8a2a22" }}>
+                            {t > 0 ? "▲" : "▼"}
+                          </span>
+                        )}
+                      </td>
                     ); })()}
                   </tr>
                 ))}
@@ -102,25 +180,85 @@ export default function DashboardExec({
           <p style={{ margin: "10px 0 0", fontSize: 12, color: "#8493a0" }}>Clique num setor para abrir a avaliação. Cores: vermelho (inicial) → verde (referência).</p>
         </Card>
 
+        {/* Ferramentas de gestão (hub NEXO) */}
+        {ferramentas && (
+          <Card>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <Titulo>Ferramentas de gestão</Titulo>
+              <Link href="/ferramentas" style={{ marginLeft: "auto", marginBottom: 12, fontSize: 12, fontWeight: 700, color: "#0068a9", textDecoration: "none" }}>abrir hub ›</Link>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+              <Link href="/ferramentas/5w2h" style={{ textDecoration: "none", background: "#f4f8fb", borderRadius: 10, padding: "12px 14px", display: "block" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".05em", color: "#8493a0" }}>🗂️ Planos 5W2H</div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: "#0068a9", fontVariantNumeric: "tabular-nums" }}>{ferramentas.planos5w2h}</div>
+                <div style={{ fontSize: 12, color: "#5b6b78" }}>
+                  {ferramentas.acoes5w2h > 0
+                    ? `${ferramentas.acoesConcluidas} de ${ferramentas.acoes5w2h} ações concluídas (${Math.round((ferramentas.acoesConcluidas / ferramentas.acoes5w2h) * 100)}%)`
+                    : "Nenhuma ação cadastrada"}
+                </div>
+              </Link>
+              <Link href="/ferramentas/ishikawa" style={{ textDecoration: "none", background: "#f4f8fb", borderRadius: 10, padding: "12px 14px", display: "block" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".05em", color: "#8493a0" }}>🐟 Análises Ishikawa</div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: "#0068a9", fontVariantNumeric: "tabular-nums" }}>{ferramentas.analisesIshikawa}</div>
+                <div style={{ fontSize: 12, color: "#5b6b78" }}>{ferramentas.causasIshikawa} causa{ferramentas.causasIshikawa === 1 ? "" : "s"} mapeada{ferramentas.causasIshikawa === 1 ? "" : "s"}</div>
+              </Link>
+              <Link href="/ferramentas/bcg" style={{ textDecoration: "none", background: "#f4f8fb", borderRadius: 10, padding: "12px 14px", display: "block" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".05em", color: "#8493a0" }}>🎯 Matriz BCG</div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: "#0068a9", fontVariantNumeric: "tabular-nums" }}>{ferramentas.itensBcg}</div>
+                <div style={{ fontSize: 12, color: "#5b6b78" }}>
+                  {ferramentas.itensBcg > 0
+                    ? (Object.entries(ferramentas.porQuadrante) as [Quadrante, number][])
+                        .filter(([, n]) => n > 0)
+                        .map(([q, n]) => `${n} ${ROTULO_QUADRANTE[q]}`)
+                        .join(" · ") || "itens ainda sem posição"
+                    : "Portfólio vazio"}
+                </div>
+              </Link>
+            </div>
+          </Card>
+        )}
+
         {/* Ranking / comparação */}
         <Card>
           <Titulo>Comparação de áreas</Titulo>
           <div style={{ display: "grid", gap: 8 }}>
             {dados.setores.map((s, i) => {
               const c = corCelula(Math.round(s.geral));
+              const ciclo = cicloDe(s.id);
               return (
                 <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <span style={{ width: 20, fontSize: 13, fontWeight: 800, color: "#8493a0", textAlign: "right" }}>{i + 1}</span>
                   <span style={{ width: 110, fontSize: 13.5, fontWeight: 700, color: "#0e1a24" }}>{s.nome}</span>
-                  <div style={{ flex: 1, height: 14, background: "#eef4f9", borderRadius: 999, overflow: "hidden" }}>
+                  <div style={{ flex: 1, height: 14, background: "#eef4f9", borderRadius: 999, overflow: "hidden", position: "relative" }}>
                     <div style={{ width: `${s.geral}%`, height: "100%", background: c.fg, transition: "width .4s" }} />
+                    {/* marcador da meta do setor */}
+                    {ciclo && (
+                      <div title={`Meta: ${ciclo.meta}%`}
+                        style={{ position: "absolute", top: -2, bottom: -2, left: `${ciclo.meta}%`, width: 2.5, background: "#0e1a24", opacity: 0.55, borderRadius: 2 }} />
+                    )}
                   </div>
                   <span style={{ width: 42, fontSize: 13, fontWeight: 800, color: c.fg, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{Math.round(s.geral)}%</span>
+                  {ciclo && (
+                    <span style={{ width: 64, fontSize: 11, fontWeight: 800, textAlign: "right", fontVariantNumeric: "tabular-nums", color: s.geral >= ciclo.meta ? "#33853a" : "#8493a0" }}>
+                      meta {ciclo.meta}%
+                    </span>
+                  )}
                 </div>
               );
             })}
           </div>
+          {governanca && (
+            <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "#8493a0" }}>O traço escuro na barra indica a meta de maturidade da área (definida em Governança).</p>
+          )}
         </Card>
+
+        {/* Comparativo par-a-par entre dois setores */}
+        {dados.setores.length >= 2 && (
+          <Card>
+            <Titulo>Comparar duas áreas</Titulo>
+            <CompararSetores setores={dados.setores} />
+          </Card>
+        )}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import PainelRecursos from "@/features/resources/PainelRecursos";
 import PainelProcessos from "@/features/processes/PainelProcessos";
 import PainelResultados from "@/features/results/PainelResultados";
@@ -35,8 +35,25 @@ export default function AvaliarSetor({
 }) {
   const [criterios, setCriterios] = useState(criteriosIniciais);
   const [nivelAtivo, setNivelAtivo] = useState<Nivel>("visao");
+
+  // Abre a aba indicada pelo hash da URL (#processos, #tatico...), vindo
+  // do banner "próximo passo" ou do clique na pirâmide. Também reage a
+  // trocas de hash sem recarregar a página.
+  useEffect(() => {
+    const nivelValido = (h: string): h is Nivel =>
+      ["visao", "tatico", "processos", "resultados"].includes(h);
+    const aplicarHash = () => {
+      const h = window.location.hash.replace("#", "");
+      if (nivelValido(h)) setNivelAtivo(h);
+    };
+    aplicarHash();
+    window.addEventListener("hashchange", aplicarHash);
+    return () => window.removeEventListener("hashchange", aplicarHash);
+  }, []);
   const [, startTransition] = useTransition();
-  const [salvando, setSalvando] = useState(false);
+  // Estado honesto de salvamento: começa neutro (ainda não salvou nada),
+  // e só vira "salvo" após uma persistência real. Trata erro.
+  const [statusSalvar, setStatusSalvar] = useState<"ocioso" | "salvando" | "salvo" | "erro">("ocioso");
 
   const itensVisao = criterios.filter((c) => c.nivel === "visao");
 
@@ -44,13 +61,15 @@ export default function AvaliarSetor({
   const topicosResultado = useMemo(
     () =>
       TIPOS_PROCESSO.filter((t) => t.resultado).map((t) => {
-        const doTipo = processos.filter((p) => p.tipo === t.id && p.media !== null);
+        // Processo tipado sem notas conta como 0 — existir sem ser
+        // executado derruba o resultado e provoca o preenchimento.
+        const doTipo = processos.filter((p) => p.tipo === t.id);
         return {
           tipo: t.id,
           titulo: t.resultado!,
           origem: t.label,
-          media: media(doTipo.map((p) => p.media!)),
-          processos: doTipo.map((p) => ({ nome: p.nome, media: p.media! })),
+          media: media(doTipo.map((p) => p.media ?? 0)),
+          processos: doTipo.map((p) => ({ nome: p.nome, media: p.media ?? 0 })),
         };
       }),
     [processos],
@@ -80,12 +99,23 @@ export default function AvaliarSetor({
     const alvo = criterios.find((c) => c.id === id)!;
     const novo = { ...alvo, ...patch };
     setCriterios((cs) => cs.map((c) => (c.id === id ? novo : c)));
-    setSalvando(true);
+    setStatusSalvar("salvando");
     startTransition(async () => {
-      await salvarResposta({ avaliacaoId, criterioId: id, nota: novo.nota, status: novo.status });
-      setSalvando(false);
+      try {
+        await salvarResposta({ avaliacaoId, criterioId: id, nota: novo.nota, status: novo.status });
+        setStatusSalvar("salvo");
+      } catch {
+        setStatusSalvar("erro");
+      }
     });
   }
+
+  // Progresso da Visão: quantos critérios já foram respondidos (nota != null).
+  // A lista `criterios` cobre só o nível Visão; Recursos/Processos/Resultado
+  // têm painéis próprios, por isso o rótulo é específico da Visão.
+  const respondidos = criterios.filter((c) => c.nota != null).length;
+  const totalCriterios = criterios.length;
+  const pctProgresso = totalCriterios ? Math.round((respondidos / totalCriterios) * 100) : 0;
 
   const metaNivel = NIVEIS.find((n) => n.id === nivelAtivo)!;
   const pctDoNivel: Record<Nivel, number> = {
@@ -97,7 +127,23 @@ export default function AvaliarSetor({
       <header style={{ maxWidth: 900, margin: "0 auto 20px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <Link href={`/setor/${setorId}`} style={{ textDecoration: "none", color: "#5b6b78", fontWeight: 700, fontSize: 13, border: "1px solid #d9e2ea", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>‹ Ver resultado</Link>
         <h1 style={{ margin: 0, fontSize: "clamp(20px,3vw,26px)", fontWeight: 800, color: "#0e1a24" }}>Avaliar — {setorNome}</h1>
-        <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 700, color: salvando ? "#d98a00" : "#33853a" }}>{salvando ? "salvando…" : "✓ salvo"}</span>
+        <span
+          style={{
+            marginLeft: "auto",
+            fontSize: 12.5,
+            fontWeight: 700,
+            color:
+              statusSalvar === "erro" ? "#c0392b"
+              : statusSalvar === "salvando" ? "#d98a00"
+              : statusSalvar === "salvo" ? "#33853a"
+              : "#8493a0",
+          }}
+        >
+          {statusSalvar === "erro" ? "⚠ falha ao salvar"
+            : statusSalvar === "salvando" ? "salvando…"
+            : statusSalvar === "salvo" ? "✓ salvo automaticamente"
+            : "edições salvam automaticamente"}
+        </span>
       </header>
 
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -124,9 +170,21 @@ export default function AvaliarSetor({
           {/* ——— N1 VISÃO ——— */}
           {nivelAtivo === "visao" && (
             <div>
-              <p style={{ margin: "0 0 14px", fontSize: 13.5, color: "#8493a0" }}>
+              <p style={{ margin: "0 0 12px", fontSize: 13.5, color: "#8493a0" }}>
                 Marque cada etapa que já foi <b>revisada com sinceridade</b> — <b style={{ color: "#0e1a24" }}>{itensVisao.filter((c) => c.status === "revisada").length}</b> de <b style={{ color: "#0e1a24" }}>{itensVisao.length}</b> revisadas. Cada etapa aceita descrição e documentos anexos.
               </p>
+              {/* Barra de progresso das etapas da Visão. */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#5b6b78" }}>Progresso</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: metaNivel.cor, fontVariantNumeric: "tabular-nums" }}>
+                    {respondidos} de {totalCriterios} · {pctProgresso}%
+                  </span>
+                </div>
+                <div style={{ height: 8, background: "#eef4f9", borderRadius: 999, overflow: "hidden" }}>
+                  <div style={{ width: `${pctProgresso}%`, height: "100%", background: metaNivel.cor, transition: "width .4s ease" }} />
+                </div>
+              </div>
               <div style={{ display: "grid", gap: 8 }}>
                 {itensVisao.map((c) => (
                   <EtapaVisao key={c.id} etapa={c} avaliacaoId={avaliacaoId}
