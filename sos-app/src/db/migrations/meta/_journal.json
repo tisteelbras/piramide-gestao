@@ -22,6 +22,34 @@
       "when": 1783529824998,
       "tag": "0002_spicy_chameleon",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783631083592,
+      "tag": "0003_nice_black_crow",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783689953678,
+      "tag": "0004_boring_guardian",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783693483617,
+      "tag": "0005_outstanding_shaman",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783694928860,
+      "tag": "0006_condemned_meltdown",
+      "breakpoints": true
     }
   ]
 }

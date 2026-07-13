@@ -2,8 +2,8 @@
 // Domínio: Recursos (Nível 2 — Tático)
 //
 // Entidades cadastráveis pelo gestor que são AVALIADAS:
-//   - avaliacaoColaborador: nota de cada colaborador em Cultura, Fit,
-//     Treinamento, Desempenho (RH).
+//   - avaliacaoColaborador: nota de cada colaborador em Alinhamento
+//     Cultural, Competência, Performance e Potencial de Evolução (RH).
 //   - sistema: ERP/CRM/Planner/MRP… com avaliação. Um "sistema" pode ser
 //     marcado como necessidade (ainda não existe) → gera recomendação.
 //   - ativo: estrutura física, máquinas, hardware… com avaliação.
@@ -14,12 +14,15 @@ import { pk, timestamps } from "./_shared";
 import { empresa, setor, colaborador } from "./organizacao";
 import { avaliacao } from "./avaliacao";
 
-/** Eixos de avaliação de RH de um colaborador. */
+/** Eixos de avaliação de RH de um colaborador. Os ids antigos são
+ *  mantidos (Postgres não remove valores de enum); os rótulos atuais
+ *  vêm de EIXOS_RH em features/resources/tipos.ts. */
 export const eixoRh = pgEnum("eixo_rh", [
   "cultura",
   "fit_cultural",
   "treinamento",
   "desempenho",
+  "potencial_evolucao",
 ]);
 
 export const avaliacaoColaborador = pgTable("avaliacao_colaborador", {

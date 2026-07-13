@@ -1,0 +1,1 @@
+ALTER TABLE "usuario" ADD COLUMN "tutorial_visto_em" timestamp with time zone;

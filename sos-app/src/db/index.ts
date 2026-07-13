@@ -11,10 +11,43 @@ if (!connectionString) {
   );
 }
 
+const connectionUrl = new URL(connectionString);
+const sslMode = connectionUrl.searchParams.get("sslmode")?.toLowerCase();
+let ssl: boolean | "allow" | "prefer" | { rejectUnauthorized: boolean } = false;
+
+if (sslMode) {
+  switch (sslMode) {
+    case "disable":
+      ssl = false;
+      break;
+    case "allow":
+      ssl = "allow";
+      break;
+    case "prefer":
+      ssl = "prefer";
+      break;
+    case "require":
+      ssl = { rejectUnauthorized: false };
+      break;
+    case "verify-full":
+      ssl = { rejectUnauthorized: true };
+      break;
+    default:
+      ssl = sslMode as any;
+  }
+} else if (
+  process.env.NODE_ENV === "production" &&
+  /(?:^|\.)supabase\.com$/i.test(connectionUrl.hostname)
+) {
+  ssl = { rejectUnauthorized: false };
+}
+
+const postgresOptions = { max: 10, ssl };
+
 // Uma única instância do cliente, reaproveitada entre requisições em dev
 // (evita esgotar conexões no hot-reload do Next).
 const globalForDb = globalThis as unknown as { sql?: ReturnType<typeof postgres> };
-const sql = globalForDb.sql ?? postgres(connectionString, { max: 10 });
+const sql = globalForDb.sql ?? postgres(connectionString, postgresOptions);
 if (process.env.NODE_ENV !== "production") globalForDb.sql = sql;
 
 export const db = drizzle(sql, { schema });

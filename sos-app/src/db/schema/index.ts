@@ -6,3 +6,5 @@ export * from "./recursos";
 export * from "./processos";
 export * from "./resultado";
 export * from "./anexos";
+export * from "./ferramentas";
+export * from "./governanca";

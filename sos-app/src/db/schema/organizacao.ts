@@ -4,7 +4,7 @@
 // A tabela `empresa` guarda 1 registro (Steelbras) hoje; deixar a FK em
 // tudo prepara o terreno para multi-tenant sem refazer o banco.
 // ————————————————————————————————————————————————
-import { pgEnum, pgTable, text, uuid, boolean } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, text, uuid, boolean, timestamp } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { pk, timestamps } from "./_shared";
 
@@ -44,6 +44,8 @@ export const usuario = pgTable("usuario", {
   // Se for líder, qual setor lidera (null p/ admin/direção).
   setorId: uuid("setor_id").references(() => setor.id, { onDelete: "set null" }),
   ativo: boolean("ativo").notNull().default(true),
+  // Quando o usuário viu o tutorial de boas-vindas (null = 1º acesso).
+  tutorialVistoEm: timestamp("tutorial_visto_em", { withTimezone: true }),
   ...timestamps,
 });
 

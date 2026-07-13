@@ -1,13 +1,17 @@
 // ————————————————————————————————————————————————
 // Domínio: Processos (Nível 3 — Operacional)
-// Cada processo é um card expansível, avaliado em 8 eixos fixos.
-// Guardamos a nota de cada eixo por processo.
+// Cada processo é um card expansível, avaliado nas 5 etapas do ciclo
+// de gestão: Padronização, Execução, Planejamento, Monitoramento e
+// Melhoria Contínua. Guardamos a nota de cada eixo por processo.
 // ————————————————————————————————————————————————
 import { pgEnum, pgTable, text, uuid, numeric } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { pk, timestamps } from "./_shared";
 import { empresa, setor } from "./organizacao";
 
+// Valores antigos (rotinas, prazo, cronograma, reunioes, documentacao,
+// automacao) permanecem no enum porque Postgres não remove valores de
+// enum; o app usa só os 5 do EIXOS_PROCESSO.
 export const eixoProcesso = pgEnum("eixo_processo", [
   "rotinas",
   "padronizacao",
@@ -17,6 +21,9 @@ export const eixoProcesso = pgEnum("eixo_processo", [
   "reunioes",
   "documentacao",
   "automacao",
+  "execucao",
+  "monitoramento",
+  "melhoria_continua",
 ]);
 
 /** Tipo do processo (modelo NEXO): processos tipados alimentam o nível
