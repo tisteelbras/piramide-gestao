@@ -3,7 +3,7 @@
 //
 // Cada nível tem sua própria mecânica:
 //   VISÃO      → % de etapas com status "revisada" (checklist binário)
-//   RECURSOS   → média dos grupos: RH (média dos colaboradores nos 3
+//   RECURSOS   → média dos grupos: RH (média dos colaboradores nos 4
 //                eixos), Sistêmico (média dos sistemas avaliados),
 //                Estrutural (média dos ativos)
 //   PROCESSOS  → média das médias de cada processo (5 etapas)
@@ -14,7 +14,8 @@
 // Usado pela visualização do setor, hub, dashboard e relatório.
 // ————————————————————————————————————————————————
 import "server-only";
-import { and, eq, desc } from "drizzle-orm";
+import { cache } from "react";
+import { and, eq, desc, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   avaliacao, resposta, criterio,
@@ -30,14 +31,22 @@ const media = (vals: number[]): number | null =>
 
 export type MaturidadeSetor = MaturidadeDTO;
 
-export async function maturidadeDoSetor(setorId: string): Promise<MaturidadeSetor> {
+// cache() deduplica por request: a home calcula a maturidade de cada
+// setor duas vezes (dashboard + governança); com isso, roda uma só. As
+// mutações revalidam o path, então o request seguinte recalcula.
+export const maturidadeDoSetor = cache(async (setorId: string): Promise<MaturidadeSetor> => {
   const emp = await getEmpresa();
   const aval = await db.query.avaliacao.findFirst({
     where: and(eq(avaliacao.setorId, setorId), eq(avaliacao.empresaId, emp.id)),
     orderBy: [desc(avaliacao.criadoEm)],
   });
 
-  const [criterios, respostas, colabs, notasColab, sistemas, ativos, procs, notasProc] =
+  // Processos do setor primeiro: assim buscamos SÓ as notas desses
+  // processos (antes puxávamos avaliacao_processo inteira da empresa).
+  const procs = await db.query.processo.findMany({ where: eq(processo.setorId, setorId) });
+  const idsProcsBanco = procs.map((p) => p.id);
+
+  const [criterios, respostas, colabs, notasColab, sistemas, ativos, notasProc] =
     await Promise.all([
       db.query.criterio.findMany({ where: eq(criterio.empresaId, emp.id) }),
       aval ? db.query.resposta.findMany({ where: eq(resposta.avaliacaoId, aval.id) }) : Promise.resolve([]),
@@ -45,8 +54,9 @@ export async function maturidadeDoSetor(setorId: string): Promise<MaturidadeSeto
       aval ? db.query.avaliacaoColaborador.findMany({ where: eq(avaliacaoColaborador.avaliacaoId, aval.id) }) : Promise.resolve([]),
       db.query.sistema.findMany({ where: eq(sistema.setorId, setorId) }),
       db.query.ativo.findMany({ where: eq(ativo.setorId, setorId) }),
-      db.query.processo.findMany({ where: eq(processo.setorId, setorId) }),
-      db.query.avaliacaoProcesso.findMany(),
+      idsProcsBanco.length
+        ? db.query.avaliacaoProcesso.findMany({ where: inArray(avaliacaoProcesso.processoId, idsProcsBanco) })
+        : Promise.resolve([]),
     ]);
   const mapaResp = new Map(respostas.map((r) => [r.criterioId, r]));
 
@@ -56,7 +66,7 @@ export async function maturidadeDoSetor(setorId: string): Promise<MaturidadeSeto
   const pctVisao = itensVisao.length ? arred((revisadas / itensVisao.length) * 100) : 0;
 
   // ——— RECURSOS: média dos 3 grupos ———
-  // RH: média por colaborador (3 eixos), depois média do time.
+  // RH: média por colaborador (4 eixos), depois média do time.
   const notasPorColab = new Map<string, number[]>();
   for (const n of notasColab) {
     if (n.nota == null) continue;
@@ -99,10 +109,12 @@ export async function maturidadeDoSetor(setorId: string): Promise<MaturidadeSeto
     { tipo: "kpi", titulo: "Resultado de KPI" },
   ];
   const itensResultado = TOPICOS_RESULTADO.map((t) => {
+    // Processo tipado sem notas conta como 0 — existir sem ser executado
+    // derruba o resultado e provoca o preenchimento. `nota` só fica null
+    // quando não há nenhum processo do tipo.
     const doTipo = procs
       .filter((p) => p.tipo === t.tipo)
-      .map((p) => media(notasPorProc.get(p.id) ?? []))
-      .filter((m): m is number => m !== null);
+      .map((p) => media(notasPorProc.get(p.id) ?? []) ?? 0);
     return { titulo: t.titulo, nota: media(doTipo) };
   });
   const pctResultados = media(itensResultado.map((i) => i.nota).filter((n): n is number => n !== null)) ?? 0;
@@ -135,4 +147,4 @@ export async function maturidadeDoSetor(setorId: string): Promise<MaturidadeSeto
     },
     pendencias,
   };
-}
+});

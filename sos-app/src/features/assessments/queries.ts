@@ -4,17 +4,20 @@
 // Ao abrir um setor, garantimos que ela exista.
 // ————————————————————————————————————————————————
 import "server-only";
+import { cache } from "react";
 import { and, eq, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { empresa, setor, criterio, avaliacao, resposta, anexo } from "@/db/schema";
 import type { Nivel } from "./tipos";
 
-/** A empresa única (Steelbras) — enquanto for single-tenant. */
-export async function getEmpresa() {
+/** A empresa única (Steelbras) — enquanto for single-tenant.
+ *  cache() deduplica: dentro de um mesmo request, a empresa é buscada
+ *  uma vez só, mesmo que dezenas de chamadas a maturidadeDoSetor a peçam. */
+export const getEmpresa = cache(async () => {
   const e = await db.query.empresa.findFirst({ where: eq(empresa.nome, "Steelbras") });
   if (!e) throw new Error("Empresa não encontrada. Rode o seed.");
   return e;
-}
+});
 
 export async function listarSetores() {
   const e = await getEmpresa();
