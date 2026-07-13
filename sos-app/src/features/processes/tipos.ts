@@ -1,11 +1,12 @@
 // Tipos e constantes puros do N3 — sem banco, seguros para o cliente.
-// As 5 etapas de avaliação de cada processo (modelo NEXO).
+// As 5 etapas de avaliação de cada processo (modelo NEXO),
+// nomeadas como capacidades do ciclo de gestão do processo.
 export const EIXOS_PROCESSO = [
-  { id: "rotinas", label: "Rotinas" },
   { id: "padronizacao", label: "Padronização" },
-  { id: "planejamento", label: "Planejamento (atendimento ao prazo)" },
-  { id: "cronograma", label: "Cronograma" },
-  { id: "reunioes", label: "Reuniões" },
+  { id: "execucao", label: "Execução" },
+  { id: "planejamento", label: "Planejamento" },
+  { id: "monitoramento", label: "Monitoramento" },
+  { id: "melhoria_continua", label: "Melhoria Contínua" },
 ] as const;
 
 /** Tipos de processo. Os 4 primeiros alimentam o nível RESULTADOS

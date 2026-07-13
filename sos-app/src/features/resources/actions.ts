@@ -15,6 +15,9 @@ import { getEmpresa } from "@/features/assessments/queries";
 
 type EixoRh = (typeof eixoRh.enumValues)[number];
 
+/** Escala oficial: notas presas de 10 em 10, entre 0 e 100. */
+const snap10 = (n: number) => Math.min(100, Math.max(0, Math.round(n / 10) * 10));
+
 async function guard() {
   const s = await auth();
   if (!s?.user) throw new Error("Não autenticado.");
@@ -47,7 +50,8 @@ export async function salvarNotaColaborador(input: {
   nota: number;
 }) {
   await guard();
-  const { avaliacaoId, colaboradorId, eixo, nota } = input;
+  const { avaliacaoId, colaboradorId, eixo } = input;
+  const nota = snap10(input.nota);
   const existente = await db.query.avaliacaoColaborador.findFirst({
     where: and(
       eq(avaliacaoColaborador.avaliacaoId, avaliacaoId),
@@ -81,7 +85,7 @@ export async function addSistema(setorId: string, nome: string, ehNecessidade = 
 }
 export async function setNotaSistema(id: string, nota: number) {
   await guard();
-  await db.update(sistema).set({ nota: String(nota), atualizadoEm: new Date() }).where(eq(sistema.id, id));
+  await db.update(sistema).set({ nota: String(snap10(nota)), atualizadoEm: new Date() }).where(eq(sistema.id, id));
   refresh();
   return { ok: true as const };
 }
@@ -102,7 +106,7 @@ export async function addAtivo(setorId: string, nome: string) {
 }
 export async function setNotaAtivo(id: string, nota: number) {
   await guard();
-  await db.update(ativo).set({ nota: String(nota), atualizadoEm: new Date() }).where(eq(ativo.id, id));
+  await db.update(ativo).set({ nota: String(snap10(nota)), atualizadoEm: new Date() }).where(eq(ativo.id, id));
   refresh();
   return { ok: true as const };
 }

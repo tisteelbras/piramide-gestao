@@ -4,6 +4,7 @@ import { logoutAction } from "@/app/logout-action";
 import AddSetor from "./AddSetor";
 import { grauMaturidade, ROTULO_MATURIDADE } from "@/domain/maturidade";
 import type { ResumoSetor } from "@/features/assessments/queries-resumo";
+import { ROTULO_ESTADO, type CicloSetor } from "@/features/governanca/tipos";
 
 const CORES_MATUR: Record<string, string> = {
   inicial: "#c0392b",
@@ -11,14 +12,26 @@ const CORES_MATUR: Record<string, string> = {
   consolidado: "#0068a9",
   referencia: "#33853a",
 };
+const COR_ESTADO: Record<string, { bg: string; fg: string }> = {
+  em_dia: { bg: "#eef7ef", fg: "#33853a" },
+  alerta: { bg: "#fdf3e0", fg: "#8a5a08" },
+  atrasada: { bg: "#fdecea", fg: "#c0392b" },
+};
 
 export default function Hub({
   usuarioNome,
   setores,
+  ciclos,
+  mostrarConfiguracoes,
 }: {
   usuarioNome: string | null;
   setores: ResumoSetor[];
+  // Situação do ciclo de avaliação por setor (opcional — sem ela o
+  // card renderiza como antes).
+  ciclos?: CicloSetor[];
+  mostrarConfiguracoes?: boolean;
 }) {
+  const cicloDe = (setorId: string) => ciclos?.find((c) => c.setorId === setorId);
   return (
     <div style={{ minHeight: "100vh", padding: "clamp(16px,4vw,44px)" }}>
       <header
@@ -43,6 +56,10 @@ export default function Hub({
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {mostrarConfiguracoes && (
+            <Link href="/configuracoes" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>⚙ Governança</Link>
+          )}
+          <Link href="/ferramentas" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>🧰 Ferramentas</Link>
           <Link href="/dashboard" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#0068a9", padding: "9px 14px", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,104,169,.25)" }}>▤ Dashboard</Link>
           {usuarioNome && (
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -115,6 +132,27 @@ export default function Hub({
                   {Math.round(s.geral)}%
                 </span>
               </div>
+              {(() => {
+                const c = cicloDe(s.id);
+                if (!c) return null;
+                const ce = COR_ESTADO[c.estado];
+                return (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 800, color: ce.fg, background: ce.bg, padding: "3px 9px", borderRadius: 999, whiteSpace: "nowrap" }}>
+                      {c.estado === "em_dia"
+                        ? `${ROTULO_ESTADO.em_dia} · vence em ${c.diasRestantes}d`
+                        : c.estado === "alerta"
+                          ? `Vence em ${c.diasRestantes}d`
+                          : `Atrasada há ${-c.diasRestantes}d`}
+                    </span>
+                    {c.tendencia != null && (
+                      <span style={{ fontSize: 10.5, fontWeight: 800, color: c.tendencia >= 0 ? "#33853a" : "#c0392b", whiteSpace: "nowrap" }}>
+                        {c.tendencia >= 0 ? `▲ +${c.tendencia}` : `▼ ${c.tendencia}`} vs. ciclo anterior
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
             </Link>
           );
         })}

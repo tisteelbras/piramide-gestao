@@ -51,8 +51,8 @@ export default function PainelProcessos({
                 <div style={{ padding: "6px 14px 14px", display: "grid", gap: 6 }}>
                   {EIXOS_PROCESSO.map((e) => (
                     <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ width: 130, fontSize: 12.5, color: "#5b6b78", fontWeight: 600 }}>{e.label}</span>
-                      <input type="range" min={0} max={100} step={5} value={p.eixos[e.id] ?? 0}
+                      <span style={{ width: 140, fontSize: 12.5, color: "#5b6b78", fontWeight: 600 }}>{e.label}</span>
+                      <input type="range" min={0} max={100} step={10} value={p.eixos[e.id] ?? 0}
                         onChange={(ev) => run(() => setNotaEixoProcesso(p.id, e.id as EixoProcesso, Number(ev.target.value)))}
                         style={{ flex: 1, accentColor: BLUE }} />
                       <span style={{ width: 34, textAlign: "right", fontWeight: 800, color: BLUE, fontVariantNumeric: "tabular-nums", fontSize: 13 }}>{p.eixos[e.id] ?? 0}</span>

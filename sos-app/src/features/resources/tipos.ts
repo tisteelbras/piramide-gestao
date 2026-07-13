@@ -1,9 +1,12 @@
 // Tipos e constantes puros do N2 — sem banco, seguros para o cliente.
-// Os 3 passos de avaliação de cada colaborador (modelo NEXO).
+// Os 4 passos de avaliação de cada colaborador (modelo NEXO).
+// Os ids "cultura", "treinamento" e "desempenho" são mantidos por
+// compatibilidade com o enum do banco; os rótulos são os nomes atuais.
 export const EIXOS_RH = [
-  { id: "cultura", label: "Cultura / Fit cultural" },
-  { id: "treinamento", label: "Treinamento" },
-  { id: "desempenho", label: "Desempenho" },
+  { id: "cultura", label: "Alinhamento Cultural" },
+  { id: "treinamento", label: "Competência" },
+  { id: "desempenho", label: "Performance" },
+  { id: "potencial_evolucao", label: "Potencial de Evolução" },
 ] as const;
 
 export type ColaboradorComNotas = {

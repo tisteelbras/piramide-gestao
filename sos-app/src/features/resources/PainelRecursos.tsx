@@ -24,7 +24,7 @@ const delBtn: React.CSSProperties = { border: "none", background: "transparent",
 function Slider({ value, onChange }: { value: number | null; onChange: (n: number) => void }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 150, flex: 1 }}>
-      <input type="range" min={0} max={100} step={5} value={value ?? 0} onChange={(e) => onChange(Number(e.target.value))} style={{ flex: 1, accentColor: BLUE }} />
+      <input type="range" min={0} max={100} step={10} value={value ?? 0} onChange={(e) => onChange(Number(e.target.value))} style={{ flex: 1, accentColor: BLUE }} />
       <span style={{ width: 34, textAlign: "right", fontWeight: 800, color: BLUE, fontVariantNumeric: "tabular-nums", fontSize: 13 }}>{value ?? 0}</span>
     </div>
   );
@@ -91,7 +91,7 @@ function AbaRh({ setorId, avaliacaoId, colaboradores, run }: { setorId: string; 
             <div style={{ display: "grid", gap: 6 }}>
               {EIXOS_RH.map((e) => (
                 <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ width: 88, fontSize: 12.5, color: "#5b6b78", fontWeight: 600 }}>{e.label}</span>
+                  <span style={{ width: 150, fontSize: 12.5, color: "#5b6b78", fontWeight: 600 }}>{e.label}</span>
                   <Slider value={c.notas[e.id] ?? null} onChange={(n) => run(() => salvarNotaColaborador({ avaliacaoId, colaboradorId: c.id, eixo: e.id, nota: n }))} />
                 </div>
               ))}

@@ -35,8 +35,12 @@ export async function removeProcesso(id: string) {
   return { ok: true as const };
 }
 
-export async function setNotaEixoProcesso(processoId: string, eixo: EixoProcesso, nota: number) {
+/** Escala oficial: notas presas de 10 em 10, entre 0 e 100. */
+const snap10 = (n: number) => Math.min(100, Math.max(0, Math.round(n / 10) * 10));
+
+export async function setNotaEixoProcesso(processoId: string, eixo: EixoProcesso, notaBruta: number) {
   await guard();
+  const nota = snap10(notaBruta);
   const existente = await db.query.avaliacaoProcesso.findFirst({
     where: and(eq(avaliacaoProcesso.processoId, processoId), eq(avaliacaoProcesso.eixo, eixo)),
   });

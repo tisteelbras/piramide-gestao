@@ -3,10 +3,12 @@
 import { NIVEIS, type Nivel } from "@/features/assessments/tipos";
 
 // Radar dos 4 níveis. Um polígono; valores 0–100 nos eixos.
+// O canvas é maior que o gráfico para os rótulos não serem cortados.
 export default function Radar({ valores }: { valores: Record<Nivel, number> }) {
-  const size = 260;
-  const cx = size / 2;
-  const cy = size / 2;
+  const W = 330;
+  const H = 302;
+  const cx = W / 2;
+  const cy = H / 2 - 4;
   const r = 96;
   const eixos = NIVEIS.map((n) => n.id);
   const N = eixos.length;
@@ -24,7 +26,7 @@ export default function Radar({ valores }: { valores: Record<Nivel, number> }) {
   const poly = eixos.map((id, i) => ponto(i, valores[id] ?? 0).join(",")).join(" ");
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} width="100%" style={{ maxWidth: 300, display: "block", margin: "0 auto" }} role="img" aria-label="Radar dos quatro níveis">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: 340, display: "block", margin: "0 auto" }} role="img" aria-label="Radar dos quatro níveis">
       {/* grades concêntricas */}
       {[25, 50, 75, 100].map((g) => (
         <polygon key={g}

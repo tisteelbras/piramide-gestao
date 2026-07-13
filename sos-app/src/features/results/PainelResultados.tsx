@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { addIndicador, removeIndicador, toggleAusenciaIndicador, gerarDiagnostico } from "./actions";
+import { criarPlanoDaRecomendacao, criarIshikawaDaRecomendacao } from "@/features/ferramentas/actions";
 import type { ResultadosDoSetor } from "./tipos";
 
 const GREEN = "#47ad4b", BLUE = "#0068a9", BLUE_D = "#004e80", INK = "#0e1a24";
@@ -16,8 +18,26 @@ export default function PainelResultados({
 }) {
   const [novo, setNovo] = useState("");
   const [gerando, setGerando] = useState(false);
+  const [abrindo, setAbrindo] = useState<string | null>(null);
   const [, start] = useTransition();
+  const router = useRouter();
   const run = (fn: () => Promise<unknown>) => start(() => { void fn(); });
+
+  // Recomendação → ferramenta de apoio (análise clínica), com 1 clique.
+  const abrirPlano = (recId: string, titulo: string, detalhe: string | null) => {
+    setAbrindo(recId);
+    start(async () => {
+      await criarPlanoDaRecomendacao(setorId, titulo, detalhe);
+      router.push("/ferramentas/5w2h");
+    });
+  };
+  const abrirIshikawa = (recId: string, titulo: string) => {
+    setAbrindo(recId);
+    start(async () => {
+      await criarIshikawaDaRecomendacao(setorId, titulo);
+      router.push("/ferramentas/ishikawa");
+    });
+  };
 
   return (
     <div style={{ marginTop: 18, borderTop: "1px solid #e3ebf1", paddingTop: 16 }}>
@@ -72,6 +92,16 @@ export default function PainelResultados({
               </div>
               {r.detalhe && <p style={{ margin: "2px 0", fontSize: 12.5, color: "#5b6b78" }}>{r.detalhe}</p>}
               {r.impactoEsperado && <p style={{ margin: "2px 0 0", fontSize: 12, color: "#33853a", fontWeight: 600 }}>Impacto: {r.impactoEsperado}</p>}
+              <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                <button onClick={() => abrirPlano(r.id, r.titulo, r.detalhe)} disabled={abrindo === r.id}
+                  style={{ border: "1px solid #cfe0ee", background: "#fff", color: BLUE, fontWeight: 700, fontSize: 11.5, padding: "5px 10px", borderRadius: 8, cursor: abrindo === r.id ? "default" : "pointer" }}>
+                  {abrindo === r.id ? "Abrindo…" : "🗂️ Criar plano 5W2H"}
+                </button>
+                <button onClick={() => abrirIshikawa(r.id, r.titulo)} disabled={abrindo === r.id}
+                  style={{ border: "1px solid #cfe0ee", background: "#fff", color: BLUE, fontWeight: 700, fontSize: 11.5, padding: "5px 10px", borderRadius: 8, cursor: abrindo === r.id ? "default" : "pointer" }}>
+                  🐟 Analisar causa (Ishikawa)
+                </button>
+              </div>
             </div>
           ))}
         </div>
