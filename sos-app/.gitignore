@@ -44,3 +44,13 @@ next-env.d.ts
 
 # anexos enviados pelos usuários (ficam só no servidor)
 /uploads
+
+# logs e saídas de trabalho (não versionar)
+*.log
+logs-build.txt
+graphify-out/
+
+# scripts temporários de depuração (experimentos de conexão/SSL)
+tmp-*.js
+tmp-*.py
+start-sos-app.vbs
