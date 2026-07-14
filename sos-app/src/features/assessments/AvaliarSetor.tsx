@@ -10,7 +10,8 @@ import { TIPOS_PROCESSO, type ProcessoComEixos } from "@/features/processes/tipo
 import type { ResultadosDoSetor } from "@/features/results/tipos";
 import { salvarResposta } from "./actions";
 import { salvarObservacaoEtapa, uploadAnexo, removeAnexo } from "./anexos-actions";
-import { ajudaDaEtapa } from "./ajuda-visao";
+import { ajudaDaEtapa, INTRO_VISAO } from "./ajuda-visao";
+import PopupAjuda from "./PopupAjuda";
 import { NIVEIS, type CriterioAvaliado, type Nivel } from "./tipos";
 
 const arred = (n: number) => Math.round(n);
@@ -55,6 +56,8 @@ export default function AvaliarSetor({
   // Estado honesto de salvamento: começa neutro (ainda não salvou nada),
   // e só vira "salvo" após uma persistência real. Trata erro.
   const [statusSalvar, setStatusSalvar] = useState<"ocioso" | "salvando" | "salvo" | "erro">("ocioso");
+  // Popup com a explicação do nível Visão (o que ele mede e o que não mede).
+  const [introAberta, setIntroAberta] = useState(false);
 
   const itensVisao = criterios.filter((c) => c.nivel === "visao");
 
@@ -171,6 +174,20 @@ export default function AvaliarSetor({
           {/* ——— N1 VISÃO ——— */}
           {nivelAtivo === "visao" && (
             <div>
+              {/* Princípio que orienta o nível — sempre visível. */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: "#eef4f9", borderLeft: "4px solid #0068a9", borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
+                <p style={{ margin: 0, flex: "1 1 320px", fontSize: 13, lineHeight: 1.55, color: "#0e1a24", fontWeight: 600 }}>
+                  A Visão nunca pergunta “isso está dando certo?”. Ela pergunta <b>“isso foi concebido e estruturado?”</b>.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIntroAberta(true)}
+                  style={{ border: "1px solid #cfe0ee", background: "#fff", color: "#0068a9", fontWeight: 700, fontSize: 12.5, padding: "7px 12px", borderRadius: 8, cursor: "pointer", whiteSpace: "nowrap" }}
+                >
+                  ? Como funciona a Visão
+                </button>
+              </div>
+
               <p style={{ margin: "0 0 12px", fontSize: 13.5, color: "#8493a0" }}>
                 Marque cada etapa que já foi <b>revisada com sinceridade</b> — <b style={{ color: "#0e1a24" }}>{itensVisao.filter((c) => c.status === "revisada").length}</b> de <b style={{ color: "#0e1a24" }}>{itensVisao.length}</b> revisadas. Cada etapa aceita descrição e documentos anexos.
               </p>
@@ -259,6 +276,14 @@ export default function AvaliarSetor({
           )}
         </div>
       </div>
+
+      {introAberta && (
+        <PopupAjuda
+          titulo={INTRO_VISAO.titulo}
+          blocos={INTRO_VISAO.blocos}
+          onFechar={() => setIntroAberta(false)}
+        />
+      )}
     </div>
   );
 }
@@ -376,36 +401,29 @@ function EtapaVisao({
   );
 }
 
-// ————— Ícone "?" com a explicação da etapa da Visão —————
-// Abre no hover e também no foco por teclado (acessível). O atributo
-// title serve de reforço nativo para leitores de tela.
+// ————— Ícone "?" que abre o popup com a explicação da etapa —————
 function AjudaEtapa({ titulo }: { titulo: string }) {
   const [aberto, setAberto] = useState(false);
-  const texto = ajudaDaEtapa(titulo);
-  if (!texto) return null;
+  const ajuda = ajudaDaEtapa(titulo);
+  if (!ajuda) return null;
 
   return (
-    <span style={{ position: "relative", display: "inline-flex" }}>
+    <>
       <button
         type="button"
-        title={texto}
-        aria-label={`O que é ${titulo}`}
-        onMouseEnter={() => setAberto(true)}
-        onMouseLeave={() => setAberto(false)}
-        onFocus={() => setAberto(true)}
-        onBlur={() => setAberto(false)}
-        onClick={(e) => { e.stopPropagation(); setAberto((a) => !a); }}
+        aria-label={`O que é ${ajuda.titulo}`}
+        onClick={(e) => { e.stopPropagation(); setAberto(true); }}
         style={{
           width: 17,
           height: 17,
           borderRadius: "50%",
           border: "1px solid #cfe0ee",
-          background: aberto ? "#0068a9" : "#eef4f9",
-          color: aberto ? "#fff" : "#5b6b78",
+          background: "#eef4f9",
+          color: "#5b6b78",
           fontSize: 11,
           fontWeight: 800,
           lineHeight: 1,
-          cursor: "help",
+          cursor: "pointer",
           padding: 0,
           display: "inline-flex",
           alignItems: "center",
@@ -416,30 +434,13 @@ function AjudaEtapa({ titulo }: { titulo: string }) {
         ?
       </button>
       {aberto && (
-        <span
-          role="tooltip"
-          style={{
-            position: "absolute",
-            top: "calc(100% + 8px)",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 280,
-            background: "#0e1a24",
-            color: "#fff",
-            fontSize: 12.5,
-            fontWeight: 500,
-            lineHeight: 1.45,
-            padding: "10px 12px",
-            borderRadius: 8,
-            boxShadow: "0 8px 24px rgba(14,26,36,.28)",
-            zIndex: 20,
-            textTransform: "none",
-            letterSpacing: 0,
-          }}
-        >
-          {texto}
-        </span>
+        <PopupAjuda
+          titulo={ajuda.titulo}
+          perguntaChave={ajuda.perguntaChave}
+          blocos={ajuda.blocos}
+          onFechar={() => setAberto(false)}
+        />
       )}
-    </span>
+    </>
   );
 }

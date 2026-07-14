@@ -11,13 +11,23 @@ export const EIXOS_PROCESSO = [
 
 /** Tipos de processo. Os 4 primeiros alimentam o nível RESULTADOS
  *  ("resultado de processo aplicado"); "outro" conta só em Processos. */
-export type TipoProcesso = "desempenho" | "governanca" | "monitoramento" | "kpi" | "outro";
+export type TipoProcesso =
+  | "desempenho"
+  | "governanca"
+  | "monitoramento"
+  | "kpi"
+  | "disciplina_operacional"
+  | "outro";
 
 export const TIPOS_PROCESSO: { id: TipoProcesso; label: string; resultado: string | null }[] = [
   { id: "desempenho", label: "Avaliação de desempenho aplicada", resultado: "Resultado da Avaliação de desempenho" },
   { id: "governanca", label: "Governança e controles internos", resultado: "Resultado de Governança e controles" },
   { id: "monitoramento", label: "Monitoramento contínuo dos resultados", resultado: "Resultado do Monitoramento contínuo" },
   { id: "kpi", label: "KPI", resultado: "Resultado de KPI" },
+  // Disciplina Operacional: mede a EXECUÇÃO do que a Visão concebeu —
+  // aderência, cumprimento, controles, monitoramento e melhoria. É onde
+  // vive a pergunta "estamos executando com disciplina?".
+  { id: "disciplina_operacional", label: "Disciplina Operacional (execução dos processos)", resultado: "Resultado da Disciplina Operacional" },
   { id: "outro", label: "Outros (só conta em Processos)", resultado: null },
 ];
 

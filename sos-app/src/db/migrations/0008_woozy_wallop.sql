@@ -1,0 +1,1 @@
+ALTER TYPE "public"."tipo_processo" ADD VALUE 'disciplina_operacional' BEFORE 'outro';
