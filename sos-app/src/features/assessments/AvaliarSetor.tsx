@@ -188,7 +188,7 @@ export default function AvaliarSetor({
               </div>
               <div style={{ display: "grid", gap: 8 }}>
                 {itensVisao.map((c) => (
-                  <EtapaVisao key={c.id} etapa={c} avaliacaoId={avaliacaoId}
+                  <EtapaVisao key={c.id} etapa={c} avaliacaoId={avaliacaoId} setorId={setorId}
                     onToggle={() => salva(c.id, c.status === "revisada" ? { status: "nao_iniciada", nota: null } : { status: "revisada", nota: 100 })} />
                 ))}
               </div>
@@ -267,12 +267,16 @@ export default function AvaliarSetor({
 function EtapaVisao({
   etapa,
   avaliacaoId,
+  setorId,
   onToggle,
 }: {
   etapa: CriterioAvaliado;
   avaliacaoId: string;
+  setorId: string;
   onToggle: () => void;
 }) {
+  // A etapa de estrutura tem a ferramenta de organograma dedicada.
+  const ehEstrutura = etapa.titulo.startsWith("Estrutura Organizacional");
   const [aberta, setAberta] = useState(false);
   const [desc, setDesc] = useState(etapa.observacao ?? "");
   const [anexos, setAnexos] = useState(etapa.anexos);
@@ -330,6 +334,14 @@ function EtapaVisao({
 
       {aberta && (
         <div style={{ padding: "0 15px 14px 51px", display: "grid", gap: 8 }}>
+          {ehEstrutura && (
+            <Link
+              href={`/setor/${setorId}/organograma`}
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
+            >
+              🏛 Montar organograma — gera o PDF e anexa aqui automaticamente ›
+            </Link>
+          )}
           <textarea value={desc} onChange={(e) => aoDigitar(e.target.value)} onBlur={salvarDesc} rows={2}
             placeholder="Descrição / contexto desta etapa (salva ao sair do campo)…"
             style={{ border: "1px solid #dce6ee", borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "#0e1a24", resize: "vertical", fontFamily: "inherit", background: "#fff" }} />
