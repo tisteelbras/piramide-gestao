@@ -15,7 +15,7 @@ export default async function ConfiguracoesPage() {
   return (
     <div style={{ minHeight: "100vh", padding: "clamp(16px,4vw,44px)" }}>
       <CabecalhoFerramenta
-        titulo="NEXO · Governança"
+        titulo="NEXO · Parâmetros"
         subtitulo="Ritmo dos ciclos de avaliação, metas de maturidade e fechamento de ciclo — definidos pela direção."
         usuarioNome={session?.user?.name ?? null}
       />

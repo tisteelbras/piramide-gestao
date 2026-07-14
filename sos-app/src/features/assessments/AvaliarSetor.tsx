@@ -10,6 +10,7 @@ import { TIPOS_PROCESSO, type ProcessoComEixos } from "@/features/processes/tipo
 import type { ResultadosDoSetor } from "@/features/results/tipos";
 import { salvarResposta } from "./actions";
 import { salvarObservacaoEtapa, uploadAnexo, removeAnexo } from "./anexos-actions";
+import { ajudaDaEtapa } from "./ajuda-visao";
 import { NIVEIS, type CriterioAvaliado, type Nivel } from "./tipos";
 
 const arred = (n: number) => Math.round(n);
@@ -316,7 +317,10 @@ function EtapaVisao({
           style={{ width: 24, height: 24, borderRadius: 7, flexShrink: 0, display: "grid", placeItems: "center", background: revisada ? "#47ad4b" : "#fff", border: revisada ? "none" : "2px solid #c6d3de", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
           {revisada ? "✓" : ""}
         </button>
-        <span style={{ flex: 1, fontSize: 14.5, fontWeight: 700, color: "#0e1a24" }}>{etapa.titulo}</span>
+        <span style={{ flex: 1, fontSize: 14.5, fontWeight: 700, color: "#0e1a24", display: "flex", alignItems: "center", gap: 6 }}>
+          {etapa.titulo}
+          <AjudaEtapa titulo={etapa.titulo} />
+        </span>
         <span style={{ fontSize: 11.5, fontWeight: 800, color: revisada ? "#33853a" : "#8493a0", textTransform: "uppercase", letterSpacing: ".04em" }}>{revisada ? "Revisado" : "Não revisado"}</span>
         <button onClick={() => setAberta((a) => !a)} aria-label={`Detalhes e anexos de ${etapa.titulo}`}
           style={{ border: "1px solid #dce6ee", background: "#fff", color: temDetalhe ? "#0068a9" : "#8493a0", fontWeight: 700, fontSize: 11.5, padding: "5px 10px", borderRadius: 8, cursor: "pointer", whiteSpace: "nowrap" }}>
@@ -357,5 +361,73 @@ function EtapaVisao({
         </div>
       )}
     </div>
+  );
+}
+
+// ————— Ícone "?" com a explicação da etapa da Visão —————
+// Abre no hover e também no foco por teclado (acessível). O atributo
+// title serve de reforço nativo para leitores de tela.
+function AjudaEtapa({ titulo }: { titulo: string }) {
+  const [aberto, setAberto] = useState(false);
+  const texto = ajudaDaEtapa(titulo);
+  if (!texto) return null;
+
+  return (
+    <span style={{ position: "relative", display: "inline-flex" }}>
+      <button
+        type="button"
+        title={texto}
+        aria-label={`O que é ${titulo}`}
+        onMouseEnter={() => setAberto(true)}
+        onMouseLeave={() => setAberto(false)}
+        onFocus={() => setAberto(true)}
+        onBlur={() => setAberto(false)}
+        onClick={(e) => { e.stopPropagation(); setAberto((a) => !a); }}
+        style={{
+          width: 17,
+          height: 17,
+          borderRadius: "50%",
+          border: "1px solid #cfe0ee",
+          background: aberto ? "#0068a9" : "#eef4f9",
+          color: aberto ? "#fff" : "#5b6b78",
+          fontSize: 11,
+          fontWeight: 800,
+          lineHeight: 1,
+          cursor: "help",
+          padding: 0,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        ?
+      </button>
+      {aberto && (
+        <span
+          role="tooltip"
+          style={{
+            position: "absolute",
+            top: "calc(100% + 8px)",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: 280,
+            background: "#0e1a24",
+            color: "#fff",
+            fontSize: 12.5,
+            fontWeight: 500,
+            lineHeight: 1.45,
+            padding: "10px 12px",
+            borderRadius: 8,
+            boxShadow: "0 8px 24px rgba(14,26,36,.28)",
+            zIndex: 20,
+            textTransform: "none",
+            letterSpacing: 0,
+          }}
+        >
+          {texto}
+        </span>
+      )}
+    </span>
   );
 }

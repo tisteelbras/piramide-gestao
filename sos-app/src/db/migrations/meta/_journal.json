@@ -50,6 +50,13 @@
       "when": 1783694928860,
       "tag": "0006_condemned_meltdown",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784031814928,
+      "tag": "0007_spotty_goblin_queen",
+      "breakpoints": true
     }
   ]
 }

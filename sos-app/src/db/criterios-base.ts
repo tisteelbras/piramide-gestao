@@ -18,7 +18,7 @@ export const CRITERIOS_BASE: Array<{ nivel: Nivel; grupo: Grupo; titulo: string 
   { nivel: "visao", grupo: "geral", titulo: "Estrutura Organizacional (Quem faz o quê?)" },
   { nivel: "visao", grupo: "geral", titulo: "Identidade Organizacional (Quem somos?)" },
   { nivel: "visao", grupo: "geral", titulo: "Direcionamento Estratégico (Para onde vamos?)" },
-  { nivel: "visao", grupo: "geral", titulo: "Governança Operacional (Como funcionamos?)" },
+  { nivel: "visao", grupo: "geral", titulo: "Modelo Operacional (Como funcionamos?)" },
   { nivel: "visao", grupo: "geral", titulo: "Gestão por Objetivos (O que precisamos entregar?)" },
   { nivel: "visao", grupo: "geral", titulo: "Diretrizes Operacionais (Quais padrões seguimos?)" },
   { nivel: "visao", grupo: "geral", titulo: "Gestão de Competências (Quem executa e como evolui?)" },

@@ -15,7 +15,7 @@ export default function EvolucaoChart({
   if (historico.length === 0) {
     return (
       <p style={{ fontSize: 12.5, color: "#8493a0", margin: 0 }}>
-        Sem histórico ainda: a evolução aparece aqui a cada <b>fechamento de ciclo</b> (Governança → “Fechar ciclo agora”).
+        Sem histórico ainda: a evolução aparece aqui a cada <b>fechamento de ciclo</b> (Parâmetros → “Fechar ciclo agora”).
         Maturidade atual da empresa: <b style={{ color: BLUE }}>{mediaAtual}%</b>.
       </p>
     );

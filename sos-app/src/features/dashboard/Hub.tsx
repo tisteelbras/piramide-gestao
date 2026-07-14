@@ -57,7 +57,7 @@ export default function Hub({
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {mostrarConfiguracoes && (
-            <Link href="/configuracoes" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>⚙ Governança</Link>
+            <Link href="/configuracoes" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>⚙ Parâmetros</Link>
           )}
           <Link href="/ferramentas" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>🧰 Ferramentas</Link>
           <Link href="/dashboard" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#0068a9", padding: "9px 14px", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,104,169,.25)" }}>▤ Dashboard</Link>

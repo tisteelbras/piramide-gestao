@@ -107,7 +107,7 @@ export default function DashboardExec({
             <Card>
               <div style={{ display: "flex", alignItems: "center" }}>
                 <Titulo>Ciclos de avaliação</Titulo>
-                <Link href="/configuracoes" style={{ marginLeft: "auto", marginBottom: 12, fontSize: 12, fontWeight: 700, color: "#0068a9", textDecoration: "none" }}>⚙ governança ›</Link>
+                <Link href="/configuracoes" style={{ marginLeft: "auto", marginBottom: 12, fontSize: 12, fontWeight: 700, color: "#0068a9", textDecoration: "none" }}>⚙ parâmetros ›</Link>
               </div>
               {atrasadas.length === 0 && emAlerta.length === 0 ? (
                 <p style={{ margin: 0, fontSize: 13, color: "#33853a", fontWeight: 700 }}>✓ Todas as áreas em dia com a análise NEXO.</p>
@@ -248,7 +248,7 @@ export default function DashboardExec({
             })}
           </div>
           {governanca && (
-            <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "#8493a0" }}>O traço escuro na barra indica a meta de maturidade da área (definida em Governança).</p>
+            <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "#8493a0" }}>O traço escuro na barra indica a meta de maturidade da área (definida em Parâmetros).</p>
           )}
         </Card>
 

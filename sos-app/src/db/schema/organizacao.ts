@@ -4,7 +4,7 @@
 // A tabela `empresa` guarda 1 registro (Steelbras) hoje; deixar a FK em
 // tudo prepara o terreno para multi-tenant sem refazer o banco.
 // ————————————————————————————————————————————————
-import { pgEnum, pgTable, text, uuid, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, text, uuid, boolean, timestamp, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { pk, timestamps } from "./_shared";
 
@@ -50,7 +50,12 @@ export const usuario = pgTable("usuario", {
 });
 
 /** Colaboradores da equipe de um setor — cadastrados manualmente enquanto
- *  não houver integração com o RH. */
+ *  não houver integração com o RH.
+ *
+ *  Esta tabela É o organograma: gestorId aponta para o colaborador a quem
+ *  a pessoa responde (null = topo do setor). Assim a mesma lista alimenta
+ *  o organograma (hierarquia) e o Recurso Humano (avaliação), sem
+ *  duplicar pessoas. */
 export const colaborador = pgTable("colaborador", {
   id: pk(),
   empresaId: uuid("empresa_id")
@@ -61,6 +66,12 @@ export const colaborador = pgTable("colaborador", {
     .references(() => setor.id, { onDelete: "cascade" }),
   nome: text("nome").notNull(),
   cargo: text("cargo"),
+  // A quem esta pessoa responde. Auto-referência: null = topo do setor.
+  // onDelete "set null": remover o chefe promove os subordinados ao topo,
+  // em vez de apagá-los em cascata.
+  gestorId: uuid("gestor_id").references((): AnyPgColumn => colaborador.id, {
+    onDelete: "set null",
+  }),
   ...timestamps,
 });
 
@@ -82,10 +93,17 @@ export const usuarioRelations = relations(usuario, ({ one }) => ({
   setor: one(setor, { fields: [usuario.setorId], references: [setor.id] }),
 }));
 
-export const colaboradorRelations = relations(colaborador, ({ one }) => ({
+export const colaboradorRelations = relations(colaborador, ({ one, many }) => ({
   empresa: one(empresa, {
     fields: [colaborador.empresaId],
     references: [empresa.id],
   }),
   setor: one(setor, { fields: [colaborador.setorId], references: [setor.id] }),
+  // Hierarquia do organograma (auto-relação).
+  gestor: one(colaborador, {
+    fields: [colaborador.gestorId],
+    references: [colaborador.id],
+    relationName: "hierarquia",
+  }),
+  subordinados: many(colaborador, { relationName: "hierarquia" }),
 }));
