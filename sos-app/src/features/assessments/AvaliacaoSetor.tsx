@@ -48,6 +48,7 @@ export default function AvaliacaoSetor({
         <h1 style={{ margin: 0, fontSize: "clamp(20px,3vw,28px)", fontWeight: 800, color: "#0e1a24" }}>{setorNome}</h1>
         <Link href={`/setor/${setorId}/organograma`} style={{ marginLeft: "auto", textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "9px 14px", borderRadius: 10 }}>🏛 Organograma</Link>
         <Link href={`/setor/${setorId}/raci`} style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "9px 14px", borderRadius: 10 }}>⊞ Matriz RACI</Link>
+        <Link href={`/setor/${setorId}/mapa`} style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "9px 14px", borderRadius: 10 }}>⇉ Mapa de Processos</Link>
         <Link href={`/setor/${setorId}/avaliar`} style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#0068a9", padding: "10px 16px", borderRadius: 10, boxShadow: "0 4px 12px rgba(0,104,169,.25)" }}>✎ Avaliar</Link>
         <Link href={`/setor/${setorId}/relatorio`} style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "9px 14px", borderRadius: 10 }}>⭳ Relatório PDF</Link>
       </header>

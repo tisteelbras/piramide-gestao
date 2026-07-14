@@ -9,3 +9,4 @@ export * from "./anexos";
 export * from "./ferramentas";
 export * from "./governanca";
 export * from "./raci";
+export * from "./mapa-processo";

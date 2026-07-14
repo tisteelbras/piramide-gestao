@@ -71,6 +71,13 @@
       "when": 1784050339789,
       "tag": "0009_absent_brother_voodoo",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784050704296,
+      "tag": "0010_wild_deathbird",
+      "breakpoints": true
     }
   ]
 }

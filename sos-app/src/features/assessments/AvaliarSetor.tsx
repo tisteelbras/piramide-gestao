@@ -370,12 +370,20 @@ function EtapaVisao({
             </Link>
           )}
           {ehGovernanca && (
-            <Link
-              href={`/setor/${setorId}/raci`}
-              style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
-            >
-              ⊞ Matriz de Responsabilidade — define quem executa, aprova, é consultado e informado ›
-            </Link>
+            <>
+              <Link
+                href={`/setor/${setorId}/raci`}
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
+              >
+                ⊞ Pilar 1 · Responsabilidades — Matriz RACI: quem executa, aprova, é consultado e informado ›
+              </Link>
+              <Link
+                href={`/setor/${setorId}/mapa`}
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
+              >
+                ⇉ Pilar 2 · Padronização — Mapa de Processos: a forma oficial de executar o trabalho ›
+              </Link>
+            </>
           )}
           <textarea value={desc} onChange={(e) => aoDigitar(e.target.value)} onBlur={salvarDesc} rows={2}
             placeholder="Descrição / contexto desta etapa (salva ao sair do campo)…"
