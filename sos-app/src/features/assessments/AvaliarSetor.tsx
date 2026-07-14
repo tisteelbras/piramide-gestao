@@ -300,8 +300,10 @@ function EtapaVisao({
   setorId: string;
   onToggle: () => void;
 }) {
-  // A etapa de estrutura tem a ferramenta de organograma dedicada.
+  // Etapas com ferramenta dedicada: estrutura → organograma;
+  // governança → matriz de responsabilidade (pilar "Responsabilidades").
   const ehEstrutura = etapa.titulo.startsWith("Estrutura Organizacional");
+  const ehGovernanca = etapa.titulo.startsWith("Governança Operacional");
   const [aberta, setAberta] = useState(false);
   const [desc, setDesc] = useState(etapa.observacao ?? "");
   const [anexos, setAnexos] = useState(etapa.anexos);
@@ -365,6 +367,14 @@ function EtapaVisao({
               style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
             >
               🏛 Montar organograma — gera o PDF e anexa aqui automaticamente ›
+            </Link>
+          )}
+          {ehGovernanca && (
+            <Link
+              href={`/setor/${setorId}/raci`}
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
+            >
+              ⊞ Matriz de Responsabilidade — define quem executa, aprova, é consultado e informado ›
             </Link>
           )}
           <textarea value={desc} onChange={(e) => aoDigitar(e.target.value)} onBlur={salvarDesc} rows={2}

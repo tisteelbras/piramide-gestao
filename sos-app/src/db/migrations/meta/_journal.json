@@ -64,6 +64,13 @@
       "when": 1784046734115,
       "tag": "0008_woozy_wallop",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784050339789,
+      "tag": "0009_absent_brother_voodoo",
+      "breakpoints": true
     }
   ]
 }
