@@ -16,6 +16,13 @@ type FerramentasResumo = {
   analisesIshikawa: number;
 };
 
+// Status das ferramentas do diagnóstico neste setor.
+type DiagnosticoResumo = {
+  organograma: { pessoas: number };
+  raci: { atividades: number; lacunas: number };
+  mapa: { processos: number; documentados: number; padronizacao: number };
+};
+
 // Tela do setor = VISUALIZAÇÃO do modelo NEXO. A pirâmide preenche
 // conforme as avaliações; a edição acontece em /setor/[id]/avaliar.
 export default function AvaliacaoSetor({
@@ -23,11 +30,13 @@ export default function AvaliacaoSetor({
   setorNome,
   maturidade,
   ferramentas,
+  diagnostico,
 }: {
   setorId: string;
   setorNome: string;
   maturidade: MaturidadeDTO;
   ferramentas?: FerramentasResumo;
+  diagnostico?: DiagnosticoResumo;
 }) {
   const { porNivel, geral, detalhe } = maturidade;
   const fmt = (v: number | null) => (v != null ? `${Math.round(v)}%` : "—");
@@ -46,10 +55,7 @@ export default function AvaliacaoSetor({
       <header style={{ maxWidth: 1160, margin: "0 auto 22px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <Link href="/setores" style={{ textDecoration: "none", color: "#5b6b78", fontWeight: 700, fontSize: 13, border: "1px solid #d9e2ea", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>‹ Setores</Link>
         <h1 style={{ margin: 0, fontSize: "clamp(20px,3vw,28px)", fontWeight: 800, color: "#0e1a24" }}>{setorNome}</h1>
-        <Link href={`/setor/${setorId}/organograma`} style={{ marginLeft: "auto", textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "9px 14px", borderRadius: 10 }}>🏛 Organograma</Link>
-        <Link href={`/setor/${setorId}/raci`} style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "9px 14px", borderRadius: 10 }}>⊞ Matriz RACI</Link>
-        <Link href={`/setor/${setorId}/mapa`} style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "9px 14px", borderRadius: 10 }}>⇉ Mapa de Processos</Link>
-        <Link href={`/setor/${setorId}/avaliar`} style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#0068a9", padding: "10px 16px", borderRadius: 10, boxShadow: "0 4px 12px rgba(0,104,169,.25)" }}>✎ Avaliar</Link>
+        <Link href={`/setor/${setorId}/avaliar`} style={{ marginLeft: "auto", textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#0068a9", padding: "10px 16px", borderRadius: 10, boxShadow: "0 4px 12px rgba(0,104,169,.25)" }}>✎ Avaliar</Link>
         <Link href={`/setor/${setorId}/relatorio`} style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "9px 14px", borderRadius: 10 }}>⭳ Relatório PDF</Link>
       </header>
 
@@ -97,6 +103,58 @@ export default function AvaliacaoSetor({
         <PendenciasAcionaveis setorId={setorId} setorNome={setorNome} porNivel={porNivel} />
       </div>
 
+      {/* Ferramentas do diagnóstico: o que sustenta a estrutura do setor. */}
+      {diagnostico && (
+        <div style={{ maxWidth: 1160, margin: "clamp(20px,3vw,28px) auto 0" }}>
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: cor.ink, margin: "0 0 4px" }}>
+            Ferramentas do diagnóstico
+          </h2>
+          <p style={{ fontSize: 13, color: cor.faint, margin: "0 0 14px" }}>
+            O que sustenta a estrutura desta área. Cada uma alimenta um ponto da pirâmide.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 12 }}>
+            <CartaoDiagnostico
+              href={`/setor/${setorId}/organograma`}
+              emoji="🏛"
+              nome="Organograma"
+              alimenta="Visão · Estrutura + Recurso Humano"
+              ok={diagnostico.organograma.pessoas > 0}
+              status={
+                diagnostico.organograma.pessoas
+                  ? `${diagnostico.organograma.pessoas} pessoa${diagnostico.organograma.pessoas === 1 ? "" : "s"} mapeadas`
+                  : "ninguém cadastrado ainda"
+              }
+            />
+            <CartaoDiagnostico
+              href={`/setor/${setorId}/raci`}
+              emoji="⊞"
+              nome="Matriz de Responsabilidade"
+              alimenta="Governança · pilar Responsabilidades"
+              ok={diagnostico.raci.atividades > 0 && diagnostico.raci.lacunas === 0}
+              status={
+                !diagnostico.raci.atividades
+                  ? "sem processos para atribuir"
+                  : diagnostico.raci.lacunas
+                    ? `${diagnostico.raci.lacunas} lacuna${diagnostico.raci.lacunas === 1 ? "" : "s"} de responsabilidade`
+                    : "responsabilidades definidas"
+              }
+            />
+            <CartaoDiagnostico
+              href={`/setor/${setorId}/mapa`}
+              emoji="⇉"
+              nome="Mapa de Processos"
+              alimenta="Governança · pilar Padronização"
+              ok={diagnostico.mapa.processos > 0 && diagnostico.mapa.padronizacao === 100}
+              status={
+                !diagnostico.mapa.processos
+                  ? "sem processos cadastrados"
+                  : `${diagnostico.mapa.padronizacao}% padronizado (${diagnostico.mapa.documentados}/${diagnostico.mapa.processos})`
+              }
+            />
+          </div>
+        </div>
+      )}
+
       {/* Ciclo fechado: ferramentas já geradas a partir deste setor. */}
       {ferramentas && (ferramentas.planos5w2h > 0 || ferramentas.analisesIshikawa > 0) && (
         <div style={{ maxWidth: 1160, margin: "clamp(20px,3vw,28px) auto 0" }}>
@@ -135,5 +193,50 @@ export default function AvaliacaoSetor({
         </p>
       </footer>
     </div>
+  );
+}
+
+// Cartão de uma ferramenta do diagnóstico: mostra o que ela alimenta na
+// pirâmide e o estado atual dela neste setor.
+function CartaoDiagnostico({
+  href,
+  emoji,
+  nome,
+  alimenta,
+  status,
+  ok,
+}: {
+  href: string;
+  emoji: string;
+  nome: string;
+  alimenta: string;
+  status: string;
+  ok: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      style={{
+        textDecoration: "none",
+        background: cor.surface,
+        border: "1px solid #e6edf3",
+        borderLeft: `5px solid ${ok ? cor.success : cor.warn}`,
+        borderRadius: 12,
+        padding: "13px 15px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+      }}
+    >
+      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span aria-hidden style={{ fontSize: 17 }}>{emoji}</span>
+        <span style={{ fontSize: 14, fontWeight: 800, color: cor.ink }}>{nome}</span>
+      </span>
+      <span style={{ fontSize: 11.5, fontWeight: 700, color: cor.brand }}>{alimenta}</span>
+      <span style={{ fontSize: 12.5, fontWeight: 600, color: ok ? cor.success : cor.warnFg, marginTop: 2 }}>
+        {ok ? "✓ " : "⚠ "}
+        {status}
+      </span>
+    </Link>
   );
 }

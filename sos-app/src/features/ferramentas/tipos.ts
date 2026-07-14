@@ -33,6 +33,40 @@ export const FERRAMENTAS = [
   },
 ] as const;
 
+// ————— Ferramentas do diagnóstico (por setor) —————
+// Diferentes das de análise: não existem sem um setor, e resolvem os
+// pilares do modelo NEXO. Por isso o hub as agrupa à parte, com um
+// seletor de setor — o href se completa com o id escolhido.
+export const FERRAMENTAS_DIAGNOSTICO = [
+  {
+    id: "organograma",
+    nome: "Organograma",
+    pergunta: "Quem faz o quê?",
+    descricao:
+      "Monta a estrutura da área, gera o PDF e alimenta o Recurso Humano. Sustenta a etapa Estrutura Organizacional da Visão.",
+    rota: (setorId: string) => `/setor/${setorId}/organograma`,
+    emoji: "🏛",
+  },
+  {
+    id: "raci",
+    nome: "Matriz de Responsabilidade",
+    pergunta: "Quem executa, aprova, é consultado e informado?",
+    descricao:
+      "Pilar 1 da Governança Operacional (Responsabilidades). Elimina o “ninguém sabe quem deveria resolver”.",
+    rota: (setorId: string) => `/setor/${setorId}/raci`,
+    emoji: "⊞",
+  },
+  {
+    id: "mapa",
+    nome: "Mapa de Processos",
+    pergunta: "Existe uma forma oficial de executar o trabalho?",
+    descricao:
+      "Pilar 2 da Governança Operacional (Padronização). O fluxo passo a passo, com instrução, responsável e entrega.",
+    rota: (setorId: string) => `/setor/${setorId}/mapa`,
+    emoji: "⇉",
+  },
+] as const;
+
 // ————— 5W2H —————
 export type StatusAcao = "pendente" | "em_andamento" | "concluida";
 
