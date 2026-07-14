@@ -4,6 +4,7 @@ import { useState, useTransition, useMemo } from "react";
 import Link from "next/link";
 import { cor } from "@/design/tokens";
 import { addPessoa, atualizarPessoa, removerPessoa, gerarEAnexarPdf } from "./actions";
+import ArvoreVisual from "./ArvoreVisual";
 import { montarArvore, type NoOrganograma, type PessoaOrganograma } from "./tipos";
 
 // Organograma do setor: cadastra pessoas (nome + função), define a quem
@@ -136,19 +137,32 @@ export default function PainelOrganograma({
           Nenhuma pessoa cadastrada ainda. Comece pelo líder da área (deixe “Responde a” como topo) e depois adicione a equipe.
         </p>
       ) : (
-        <div style={{ display: "grid", gap: 6, marginBottom: 20 }}>
-          {arvore.map((no) => (
-            <LinhaPessoa
-              key={no.id}
-              no={no}
-              nivel={0}
-              pessoas={pessoas}
-              rodando={rodando}
-              onTrocarChefe={trocarChefe}
-              onExcluir={excluir}
-            />
-          ))}
-        </div>
+        <>
+          {/* Organograma visual: caixas conectadas por níveis. */}
+          <div style={{ background: cor.appBg, border: `1px solid ${cor.hairline}`, borderRadius: 14, padding: "20px 16px", marginBottom: 18 }}>
+            <ArvoreVisual pessoas={pessoas} />
+          </div>
+
+          {/* Lista de edição: definir a quem cada um responde. */}
+          <details open style={{ marginBottom: 20 }}>
+            <summary style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 800, color: cor.muted, marginBottom: 10, listStyle: "revert" }}>
+              Editar pessoas e hierarquia
+            </summary>
+            <div style={{ display: "grid", gap: 6 }}>
+              {arvore.map((no) => (
+                <LinhaPessoa
+                  key={no.id}
+                  no={no}
+                  nivel={0}
+                  pessoas={pessoas}
+                  rodando={rodando}
+                  onTrocarChefe={trocarChefe}
+                  onExcluir={excluir}
+                />
+              ))}
+            </div>
+          </details>
+        </>
       )}
 
       {/* ——— Ações ——— */}

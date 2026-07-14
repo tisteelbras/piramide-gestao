@@ -1,18 +1,22 @@
 import "server-only";
 import PDFDocument from "pdfkit";
-import { montarArvore, type NoOrganograma, type PessoaOrganograma } from "./tipos";
+import { montarArvore, type PessoaOrganograma } from "./tipos";
+import { calcularLayout, iniciais, CAIXA_L, CAIXA_A } from "./layout";
 
-// Gera o PDF do organograma do setor: uma árvore indentada, com o nome
-// em destaque e a função abaixo. Retorna o Buffer do arquivo.
-//
-// Escolha de desenho: árvore indentada (e não caixas conectadas), porque
-// lida bem com qualquer profundidade e número de pessoas sem estourar a
-// largura da página — que é o caso real de um setor.
+// Gera o PDF do organograma: caixas conectadas por linhas, no mesmo
+// desenho da tela (reusa calcularLayout). Em paisagem, com escala
+// automática para a estrutura caber na página.
 
 const AZUL = "#0068a9";
 const VERDE = "#47ad4b";
+const AMBAR = "#d98a00";
+const AZUL_ESC = "#004e80";
 const TINTA = "#0e1a24";
 const CINZA = "#5b6b78";
+const LINHA = "#cfdae4";
+
+const CORES_NIVEL = [AZUL, VERDE, AMBAR, AZUL_ESC];
+const corDoNivel = (n: number) => CORES_NIVEL[n % CORES_NIVEL.length];
 
 export async function gerarPdfOrganograma(opts: {
   setorNome: string;
@@ -20,9 +24,9 @@ export async function gerarPdfOrganograma(opts: {
   pessoas: PessoaOrganograma[];
 }): Promise<Buffer> {
   const { setorNome, empresaNome, pessoas } = opts;
-  const arvore = montarArvore(pessoas);
 
-  const doc = new PDFDocument({ size: "A4", margin: 48 });
+  // Paisagem: organogramas crescem para os lados.
+  const doc = new PDFDocument({ size: "A4", layout: "landscape", margin: 40 });
   const chunks: Buffer[] = [];
   doc.on("data", (c: Buffer) => chunks.push(c));
   const pronto = new Promise<Buffer>((resolve) => {
@@ -30,61 +34,83 @@ export async function gerarPdfOrganograma(opts: {
   });
 
   // ——— Cabeçalho ———
-  doc.fillColor(AZUL).fontSize(20).font("Helvetica-Bold").text("Organograma", { continued: false });
-  doc.fillColor(TINTA).fontSize(15).font("Helvetica-Bold").text(setorNome);
-  doc.moveDown(0.2);
-  doc.fillColor(CINZA).fontSize(9.5).font("Helvetica")
+  doc.fillColor(AZUL).fontSize(18).font("Helvetica-Bold").text("Organograma");
+  doc.fillColor(TINTA).fontSize(14).font("Helvetica-Bold").text(setorNome);
+  doc.fillColor(CINZA).fontSize(9).font("Helvetica")
     .text(`${empresaNome} · NEXO — gerado em ${new Date().toLocaleDateString("pt-BR")}`);
 
-  // Linha divisória
-  doc.moveDown(0.6);
-  const yLinha = doc.y;
-  doc.strokeColor("#d9e2ea").lineWidth(1)
-    .moveTo(doc.page.margins.left, yLinha)
-    .lineTo(doc.page.width - doc.page.margins.right, yLinha)
-    .stroke();
-  doc.moveDown(0.8);
+  const topoDesenho = doc.y + 18;
 
-  if (arvore.length === 0) {
-    doc.fillColor(CINZA).fontSize(11).font("Helvetica")
-      .text("Nenhuma pessoa cadastrada neste setor.");
+  if (pessoas.length === 0) {
+    doc.moveDown(1);
+    doc.fillColor(CINZA).fontSize(11).text("Nenhuma pessoa cadastrada neste setor.");
     doc.end();
     return pronto;
   }
 
-  // ——— Árvore indentada ———
-  const desenhaNo = (no: NoOrganograma, nivel: number) => {
-    const x = doc.page.margins.left + nivel * 22;
-    const larguraUtil = doc.page.width - doc.page.margins.right - x;
+  // ——— Layout (o mesmo da tela) ———
+  const { caixas, ligacoes, largura, altura } = calcularLayout(montarArvore(pessoas));
 
-    // Quebra de página quando necessário.
-    if (doc.y > doc.page.height - doc.page.margins.bottom - 46) doc.addPage();
+  // Escala para caber na área útil, sem ampliar além de 1×.
+  const dispX = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const dispY = doc.page.height - topoDesenho - doc.page.margins.bottom - 16;
+  const escala = Math.min(1, dispX / Math.max(1, largura), dispY / Math.max(1, altura));
 
-    const y = doc.y;
-    // Marcador: quadrado colorido (azul na raiz, verde nos demais).
-    doc.rect(x, y + 3, 6, 6).fill(nivel === 0 ? AZUL : VERDE);
+  // Centraliza horizontalmente o desenho escalado.
+  const offsetX = doc.page.margins.left + Math.max(0, (dispX - largura * escala) / 2);
 
-    doc.fillColor(TINTA).fontSize(11).font("Helvetica-Bold")
-      .text(no.nome, x + 13, y, { width: larguraUtil - 13 });
-    if (no.cargo) {
-      doc.fillColor(CINZA).fontSize(9).font("Helvetica")
-        .text(no.cargo, x + 13, doc.y, { width: larguraUtil - 13 });
-    }
-    doc.moveDown(0.55);
+  doc.save();
+  doc.translate(offsetX, topoDesenho).scale(escala);
 
-    for (const filho of no.subordinados) desenhaNo(filho, nivel + 1);
-  };
+  // ——— Linhas de conexão (cotovelo) ———
+  doc.strokeColor(LINHA).lineWidth(1.6 / escala);
+  for (const l of ligacoes) {
+    const meioY = (l.de.y + l.para.y) / 2;
+    doc.moveTo(l.de.x, l.de.y)
+      .lineTo(l.de.x, meioY)
+      .lineTo(l.para.x, meioY)
+      .lineTo(l.para.x, l.para.y)
+      .stroke();
+  }
 
-  for (const raiz of arvore) desenhaNo(raiz, 0);
+  // ——— Caixas ———
+  for (const c of caixas) {
+    const cn = corDoNivel(c.nivel);
+
+    // Corpo da caixa.
+    doc.roundedRect(c.x, c.y, CAIXA_L, CAIXA_A, 8).fillAndStroke("#ffffff", "#e3ebf1");
+    // Faixa superior colorida (marca o nível).
+    doc.save();
+    doc.roundedRect(c.x, c.y, CAIXA_L, CAIXA_A, 8).clip();
+    doc.rect(c.x, c.y, CAIXA_L, 3.5).fill(cn);
+    doc.restore();
+
+    // Avatar circular com as iniciais (o sistema não guarda foto).
+    const raio = 15;
+    const acx = c.x + 12 + raio;
+    const acy = c.y + CAIXA_A / 2 + 1;
+    doc.circle(acx, acy, raio).fill(cn);
+    doc.fillColor("#ffffff").fontSize(10).font("Helvetica-Bold")
+      .text(iniciais(c.nome), c.x + 12, acy - 5, { width: raio * 2, align: "center" });
+
+    // Nome e função.
+    const tx = c.x + 12 + raio * 2 + 8;
+    const tw = CAIXA_L - (tx - c.x) - 10;
+    doc.fillColor(TINTA).fontSize(9).font("Helvetica-Bold")
+      .text(c.nome, tx, c.y + 24, { width: tw, ellipsis: true, lineBreak: false });
+    doc.fillColor(CINZA).fontSize(7.5).font("Helvetica")
+      .text(c.cargo || "sem função", tx, c.y + 37, { width: tw, ellipsis: true, lineBreak: false });
+  }
+
+  doc.restore();
 
   // ——— Rodapé ———
-  doc.moveDown(1);
-  doc.fillColor(CINZA).fontSize(8.5).font("Helvetica")
-    .text(
-      `${pessoas.length} pessoa${pessoas.length === 1 ? "" : "s"} no organograma de ${setorNome}.`,
-      doc.page.margins.left,
-      doc.y,
-    );
+  doc.fillColor(CINZA).fontSize(8).font("Helvetica").text(
+    `${pessoas.length} pessoa${pessoas.length === 1 ? "" : "s"} no organograma de ${setorNome}.`,
+    doc.page.margins.left,
+    doc.page.height - doc.page.margins.bottom - 10,
+    { lineBreak: false },
+  );
 
   doc.end();
   return pronto;

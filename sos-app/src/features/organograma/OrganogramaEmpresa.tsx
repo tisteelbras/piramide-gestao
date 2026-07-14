@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { cor } from "@/design/tokens";
-import { montarArvore, type NoOrganograma } from "./tipos";
+import ArvoreVisual from "./ArvoreVisual";
 import type { OrganogramaSetor } from "./queries";
 
 // Organograma consolidado da empresa: um bloco por setor, com a árvore de
@@ -80,7 +80,6 @@ function Indicador({ rotulo, valor, destaque }: { rotulo: string; valor: string;
 
 function BlocoSetor({ setor }: { setor: OrganogramaSetor }) {
   const [aberto, setAberto] = useState(true);
-  const arvore = montarArvore(setor.pessoas);
 
   return (
     <div style={{ border: `1px solid #e6edf3`, borderRadius: 14, background: cor.surface, overflow: "hidden" }}>
@@ -105,37 +104,10 @@ function BlocoSetor({ setor }: { setor: OrganogramaSetor }) {
       </div>
 
       {aberto && (
-        <div style={{ padding: "14px 16px", display: "grid", gap: 5 }}>
-          {arvore.map((no) => (
-            <NoArvore key={no.id} no={no} nivel={0} />
-          ))}
+        <div style={{ padding: "22px 16px", background: cor.appBg }}>
+          <ArvoreVisual pessoas={setor.pessoas} />
         </div>
       )}
     </div>
-  );
-}
-
-function NoArvore({ no, nivel }: { no: NoOrganograma; nivel: number }) {
-  return (
-    <>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginLeft: nivel * 22 }}>
-        <span
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: 2,
-            background: nivel === 0 ? cor.brand : cor.green,
-            flexShrink: 0,
-            transform: "translateY(-2px)",
-          }}
-          aria-hidden
-        />
-        <span style={{ fontSize: 13.5, fontWeight: 700, color: cor.ink }}>{no.nome}</span>
-        {no.cargo && <span style={{ fontSize: 12.5, color: cor.faint }}>— {no.cargo}</span>}
-      </div>
-      {no.subordinados.map((f) => (
-        <NoArvore key={f.id} no={f} nivel={nivel + 1} />
-      ))}
-    </>
   );
 }
