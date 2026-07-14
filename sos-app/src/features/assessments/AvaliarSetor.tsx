@@ -62,9 +62,25 @@ export default function AvaliarSetor({
   const itensVisao = criterios.filter((c) => c.nivel === "visao");
 
   // Tópicos de RESULTADO calculados dos processos tipados.
+  // Exceção: "Resultado de KPI" vem do ATINGIMENTO dos indicadores
+  // (valor × meta), não de processos — mesma regra do servidor
+  // (domain/indicadores.ts), para a tela não divergir do banco.
   const topicosResultado = useMemo(
     () =>
       TIPOS_PROCESSO.filter((t) => t.resultado).map((t) => {
+        if (t.id === "kpi") {
+          const medidos = resultados.indicadores
+            .map((i) => ({ nome: i.nome, media: i.atingimento }))
+            .filter((i): i is { nome: string; media: number } => i.media !== null);
+          return {
+            tipo: t.id,
+            titulo: t.resultado!,
+            origem: t.label,
+            vemDeKpi: true as const,
+            media: media(medidos.map((i) => i.media)),
+            processos: medidos,
+          };
+        }
         // Processo tipado sem notas conta como 0 — existir sem ser
         // executado derruba o resultado e provoca o preenchimento.
         const doTipo = processos.filter((p) => p.tipo === t.id);
@@ -72,11 +88,12 @@ export default function AvaliarSetor({
           tipo: t.id,
           titulo: t.resultado!,
           origem: t.label,
+          vemDeKpi: false as const,
           media: media(doTipo.map((p) => p.media ?? 0)),
           processos: doTipo.map((p) => ({ nome: p.nome, media: p.media ?? 0 })),
         };
       }),
-    [processos],
+    [processos, resultados.indicadores],
   );
 
   // % ao vivo de cada nível (modelo NEXO)
@@ -235,7 +252,7 @@ export default function AvaliarSetor({
           {nivelAtivo === "processos" && (
             <div>
               <p style={{ margin: "0 0 4px", fontSize: 13.5, color: "#8493a0" }}>
-                Cadastre cada processo da operação. Processos dos tipos <b>Avaliação de desempenho, Governança, Monitoramento e KPI</b> alimentam automaticamente o nível Resultado.
+                Cadastre cada processo da operação. Processos tipados — <b>Avaliação de desempenho, Governança, Monitoramento, Disciplina Operacional</b> e <b>Gestão por Objetivos</b> — alimentam automaticamente o nível Resultado.
               </p>
               <PainelProcessos setorId={setorId} processos={processos} />
             </div>
@@ -245,7 +262,7 @@ export default function AvaliarSetor({
           {nivelAtivo === "resultados" && (
             <div>
               <p style={{ margin: "0 0 14px", fontSize: 13.5, color: "#8493a0" }}>
-                O Resultado <b>não se preenche</b>: ele é a consequência dos processos aplicados. Cadastre um processo do tipo correspondente em <b>Processos</b> e o resultado aparece aqui.
+                O Resultado <b>não se preenche</b>: ele é a consequência do que foi executado. Cadastre um processo do tipo correspondente em <b>Processos</b> — e meça os <b>KPIs</b> abaixo — que o resultado aparece aqui.
               </p>
               <div style={{ display: "grid", gap: 10 }}>
                 {topicosResultado.map((t) => (
@@ -259,6 +276,10 @@ export default function AvaliarSetor({
                     {t.processos.length > 0 ? (
                       <div style={{ marginTop: 6, fontSize: 12.5, color: "#5b6b78" }}>
                         {t.processos.map((p) => `${p.nome} (${arred(p.media)}%)`).join(" · ")}
+                      </div>
+                    ) : t.vemDeKpi ? (
+                      <div style={{ marginTop: 6, fontSize: 12.5, color: "#a2afba" }}>
+                        Nenhum KPI com meta e valor atual ainda — cadastre e meça os indicadores logo abaixo.
                       </div>
                     ) : (
                       <div style={{ marginTop: 6, fontSize: 12.5, color: "#a2afba" }}>

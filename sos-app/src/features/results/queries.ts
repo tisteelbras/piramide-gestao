@@ -2,6 +2,7 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { indicador, recomendacao } from "@/db/schema";
+import { atingimentoKpi } from "@/domain/indicadores";
 import type { IndicadorItem, RecomendacaoItem } from "./tipos";
 
 export type { IndicadorItem, RecomendacaoItem, ResultadosDoSetor } from "./tipos";
@@ -12,14 +13,21 @@ export async function carregarResultados(setorId: string) {
     db.query.recomendacao.findMany({ where: eq(recomendacao.setorId, setorId), orderBy: (r, { asc }) => [asc(r.prioridade)] }),
   ]);
   return {
-    indicadores: inds.map((i): IndicadorItem => ({
-      id: i.id,
-      nome: i.nome,
-      unidade: i.unidade,
-      meta: i.meta != null ? Number(i.meta) : null,
-      valorAtual: i.valorAtual != null ? Number(i.valorAtual) : null,
-      ehAusencia: i.ehAusencia,
-    })),
+    indicadores: inds.map((i): IndicadorItem => {
+      const medida = {
+        meta: i.meta != null ? Number(i.meta) : null,
+        valorAtual: i.valorAtual != null ? Number(i.valorAtual) : null,
+        direcao: i.direcao,
+        ehAusencia: i.ehAusencia,
+      };
+      return {
+        id: i.id,
+        nome: i.nome,
+        unidade: i.unidade,
+        ...medida,
+        atingimento: atingimentoKpi(medida),
+      };
+    }),
     recomendacoes: recs.map((r): RecomendacaoItem => ({
       id: r.id,
       titulo: r.titulo,

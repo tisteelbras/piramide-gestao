@@ -35,6 +35,7 @@ export const tipoProcesso = pgEnum("tipo_processo", [
   "monitoramento",
   "kpi",
   "disciplina_operacional",
+  "gestao_objetivos",
   "outro",
 ]);
 

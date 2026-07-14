@@ -12,6 +12,11 @@ import { pk, timestamps } from "./_shared";
 import { empresa, setor } from "./organizacao";
 import { nivelPiramide } from "./avaliacao";
 
+/** Sentido do KPI: "maior" = quanto maior, melhor (OTIF, conversão);
+ *  "menor" = quanto menor, melhor (retrabalho, atraso, custo). Define
+ *  como o atingimento (valor × meta) é calculado. */
+export const direcaoIndicador = pgEnum("direcao_indicador", ["maior", "menor"]);
+
 export const indicador = pgTable("indicador", {
   id: pk(),
   empresaId: uuid("empresa_id")
@@ -24,7 +29,10 @@ export const indicador = pgTable("indicador", {
   unidade: text("unidade"),
   meta: numeric("meta", { precision: 12, scale: 2 }),
   valorAtual: numeric("valor_atual", { precision: 12, scale: 2 }),
+  direcao: direcaoIndicador("direcao").notNull().default("maior"),
   // KPI marcado como ausente → cruzado com recursos sistêmicos p/ sugestão.
+  // Ausente também entra na nota de Resultado de KPI como 0: um indicador
+  // que a área sabe que precisa ter, mas não mede, é resultado não obtido.
   ehAusencia: boolean("eh_ausencia").notNull().default(false),
   ...timestamps,
 });

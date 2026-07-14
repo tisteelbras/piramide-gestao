@@ -19,10 +19,15 @@ export const CRITERIOS_BASE: Array<{ nivel: Nivel; grupo: Grupo; titulo: string 
   { nivel: "visao", grupo: "geral", titulo: "Identidade Organizacional (Quem somos?)" },
   { nivel: "visao", grupo: "geral", titulo: "Direcionamento Estratégico (Para onde vamos?)" },
   { nivel: "visao", grupo: "geral", titulo: "Governança Operacional (Como funcionamos?)" },
-  { nivel: "visao", grupo: "geral", titulo: "Gestão por Objetivos (O que precisamos entregar?)" },
   { nivel: "visao", grupo: "geral", titulo: "Diretrizes Operacionais (Quais padrões seguimos?)" },
   { nivel: "visao", grupo: "geral", titulo: "Gestão de Competências (Quem executa e como evolui?)" },
 
+  // "Gestão por Objetivos (O que precisamos entregar?)" NÃO está aqui de
+  // propósito: ela só se faz DEPOIS que os processos estão alinhados, logo
+  // é consequência, não concepção. Virou um TIPO DE PROCESSO
+  // (gestao_objetivos) e sobe para o N4 como "Resultado da Gestão por
+  // Objetivos". Ver features/processes/tipos.ts.
+
   // N4 · RESULTADOS não tem critérios: é calculado dos processos tipados
-  // (desempenho, governanca, monitoramento, kpi) cadastrados no N3.
+  // cadastrados no N3 + o atingimento dos KPIs (valor × meta).
 ];

@@ -2,12 +2,99 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addIndicador, removeIndicador, toggleAusenciaIndicador, gerarDiagnostico } from "./actions";
+import { addIndicador, removeIndicador, toggleAusenciaIndicador, salvarMedicaoIndicador, gerarDiagnostico } from "./actions";
 import { criarPlanoDaRecomendacao, criarIshikawaDaRecomendacao } from "@/features/ferramentas/actions";
-import type { ResultadosDoSetor } from "./tipos";
+import type { ResultadosDoSetor, IndicadorItem, DirecaoIndicador } from "./tipos";
 
 const GREEN = "#47ad4b", BLUE = "#0068a9", BLUE_D = "#004e80", INK = "#0e1a24";
 const PRIO_COR: Record<number, string> = { 1: "#c0392b", 2: "#d98a00", 3: "#0068a9", 4: "#5b6b78", 5: "#8493a0" };
+
+/** Cor do atingimento: verde bateu, âmbar perto, vermelho longe. */
+const corAtingimento = (n: number) => (n >= 90 ? "#33853a" : n >= 70 ? "#d98a00" : "#c0392b");
+
+const inputBase: React.CSSProperties = {
+  border: "1px solid #dce6ee", borderRadius: 8, padding: "6px 8px",
+  fontSize: 13, color: INK, width: "100%",
+};
+
+/** Uma linha de KPI: nome, meta, valor atual, direção e o atingimento
+ *  calculado. É a medição daqui que vira a nota de "Resultado de KPI". */
+function LinhaKpi({ i, onSalvar, onToggle, onRemover }: {
+  i: IndicadorItem;
+  onSalvar: (dados: { meta?: number | null; valorAtual?: number | null; unidade?: string | null; direcao?: DirecaoIndicador }) => void;
+  onToggle: () => void;
+  onRemover: () => void;
+}) {
+  // Estado local só para os campos digitáveis; o salvamento vai no blur.
+  const [meta, setMeta] = useState(i.meta?.toString() ?? "");
+  const [valor, setValor] = useState(i.valorAtual?.toString() ?? "");
+  const [unidade, setUnidade] = useState(i.unidade ?? "");
+
+  // Campo vazio = não medido (null), nunca zero.
+  const num = (s: string) => { const t = s.trim().replace(",", "."); if (!t) return null; const n = Number(t); return Number.isFinite(n) ? n : null; };
+
+  return (
+    <div style={{ border: "1px solid #e3ebf1", borderRadius: 10, padding: "10px 12px", background: i.ehAusencia ? "#fffbfb" : "#fff" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: i.ehAusencia ? 0 : 10 }}>
+        <span style={{ fontWeight: 700, color: INK, fontSize: 13.5 }}>{i.nome}</span>
+        <button onClick={onToggle}
+          title={i.ehAusencia ? "Este KPI não é medido — conta como 0 no Resultado." : "Marcar como ausente (não medimos este indicador)."}
+          style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, cursor: "pointer",
+            border: i.ehAusencia ? "1px solid #f0c0bd" : "1px solid #cfe0d0",
+            background: i.ehAusencia ? "#fdecea" : "#eef7ef",
+            color: i.ehAusencia ? "#c0392b" : "#33853a" }}>
+          {i.ehAusencia ? "ausente" : "medido"}
+        </button>
+
+        {/* Atingimento — a nota que este KPI entrega ao N4. */}
+        {i.atingimento !== null ? (
+          <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 800, color: corAtingimento(i.atingimento) }}>
+            {i.atingimento}% da meta
+          </span>
+        ) : (
+          <span style={{ marginLeft: "auto", fontSize: 12, color: "#a2afba", fontStyle: "italic" }}>sem medição</span>
+        )}
+        <button onClick={onRemover} style={{ border: "none", background: "transparent", color: "#c0ccd6", fontSize: 18, cursor: "pointer", lineHeight: 1 }} aria-label="Remover">×</button>
+      </div>
+
+      {/* KPI ausente não tem o que medir — some com os campos. */}
+      {!i.ehAusencia && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 0.8fr 1.2fr", gap: 8 }}>
+          <label style={{ fontSize: 11, color: "#5b6b78", fontWeight: 600 }}>
+            Meta
+            <input value={meta} inputMode="decimal" placeholder="95"
+              onChange={(e) => setMeta(e.target.value)}
+              onBlur={() => onSalvar({ meta: num(meta) })}
+              style={{ ...inputBase, marginTop: 3 }} />
+          </label>
+          <label style={{ fontSize: 11, color: "#5b6b78", fontWeight: 600 }}>
+            Valor atual
+            <input value={valor} inputMode="decimal" placeholder="78"
+              onChange={(e) => setValor(e.target.value)}
+              onBlur={() => onSalvar({ valorAtual: num(valor) })}
+              style={{ ...inputBase, marginTop: 3 }} />
+          </label>
+          <label style={{ fontSize: 11, color: "#5b6b78", fontWeight: 600 }}>
+            Unidade
+            <input value={unidade} placeholder="%"
+              onChange={(e) => setUnidade(e.target.value)}
+              onBlur={() => onSalvar({ unidade })}
+              style={{ ...inputBase, marginTop: 3 }} />
+          </label>
+          <label style={{ fontSize: 11, color: "#5b6b78", fontWeight: 600 }}>
+            Sentido
+            <select value={i.direcao}
+              onChange={(e) => onSalvar({ direcao: e.target.value as DirecaoIndicador })}
+              style={{ ...inputBase, marginTop: 3, cursor: "pointer" }}>
+              <option value="maior">Quanto maior, melhor</option>
+              <option value="menor">Quanto menor, melhor</option>
+            </select>
+          </label>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function PainelResultados({
   setorId,
@@ -42,21 +129,20 @@ export default function PainelResultados({
   return (
     <div style={{ marginTop: 18, borderTop: "1px solid #e3ebf1", paddingTop: 16 }}>
       {/* Indicadores */}
-      <h4 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 800, color: INK }}>Indicadores (KPIs)</h4>
+      <h4 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 800, color: INK }}>Indicadores (KPIs)</h4>
+      <p style={{ fontSize: 12, color: "#5b6b78", margin: "0 0 10px" }}>
+        O atingimento de cada KPI (valor × meta) forma a nota de <b>Resultado de KPI</b> na pirâmide.
+      </p>
       {resultados.indicadores.length === 0 && <p style={{ fontSize: 13, color: "#a2afba", fontStyle: "italic", margin: "4px 0" }}>Nenhum KPI cadastrado.</p>}
       <div style={{ display: "grid", gap: 8 }}>
         {resultados.indicadores.map((i) => (
-          <div key={i.id} style={{ display: "flex", alignItems: "center", gap: 10, border: "1px solid #e3ebf1", borderRadius: 10, padding: "8px 12px" }}>
-            <span style={{ fontWeight: 700, color: INK, fontSize: 13.5 }}>{i.nome}</span>
-            <button onClick={() => run(() => toggleAusenciaIndicador(i.id, !i.ehAusencia))}
-              style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, cursor: "pointer",
-                border: i.ehAusencia ? "1px solid #f0c0bd" : "1px solid #cfe0d0",
-                background: i.ehAusencia ? "#fdecea" : "#eef7ef",
-                color: i.ehAusencia ? "#c0392b" : "#33853a" }}>
-              {i.ehAusencia ? "ausente" : "ativo"}
-            </button>
-            <button onClick={() => run(() => removeIndicador(i.id))} style={{ marginLeft: "auto", border: "none", background: "transparent", color: "#c0ccd6", fontSize: 18, cursor: "pointer", lineHeight: 1 }} aria-label="Remover">×</button>
-          </div>
+          <LinhaKpi
+            key={i.id}
+            i={i}
+            onSalvar={(dados) => run(() => salvarMedicaoIndicador(i.id, dados))}
+            onToggle={() => run(() => toggleAusenciaIndicador(i.id, !i.ehAusencia))}
+            onRemover={() => run(() => removeIndicador(i.id))}
+          />
         ))}
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -66,7 +152,9 @@ export default function PainelResultados({
         <button onClick={() => { if (novo.trim()) { run(() => addIndicador(setorId, novo.trim())); setNovo(""); } }}
           style={{ border: "none", background: GREEN, color: "#fff", fontWeight: 700, fontSize: 12.5, padding: "8px 14px", borderRadius: 8, cursor: "pointer" }}>+ Adicionar</button>
       </div>
-      <p style={{ fontSize: 12, color: "#8493a0", marginTop: 6 }}>Marque um KPI como <b>ausente</b> para o diagnóstico sugerir ações.</p>
+      <p style={{ fontSize: 12, color: "#8493a0", marginTop: 6 }}>
+        Preencha <b>meta</b> e <b>valor atual</b> para o KPI virar nota. Marque como <b>ausente</b> o indicador que a área precisa ter mas não mede — ele conta como 0 e o diagnóstico sugere a ação.
+      </p>
 
       {/* Diagnóstico */}
       <div style={{ marginTop: 20, background: "#f4f8fb", borderRadius: 12, padding: 16 }}>

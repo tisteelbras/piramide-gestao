@@ -11,6 +11,7 @@ import { auth } from "@/auth";
 import { getEmpresa } from "@/features/assessments/queries";
 import { maturidadeDoSetor } from "@/features/assessments/maturidade-setor";
 import { gerarRecomendacoes, type RetratoSetor } from "@/domain/recomendacoes";
+import { atingimentoKpi, type DirecaoIndicador } from "@/domain/indicadores";
 
 async function guard() {
   const s = await auth();
@@ -39,6 +40,30 @@ export async function removeIndicador(id: string) {
 export async function toggleAusenciaIndicador(id: string, ehAusencia: boolean) {
   await guard();
   await db.update(indicador).set({ ehAusencia, atualizadoEm: new Date() }).where(eq(indicador.id, id));
+  refresh();
+  return { ok: true as const };
+}
+
+/** Medição do KPI: meta, valor atual, unidade e direção. É daqui que sai a
+ *  nota de "Resultado de KPI" no N4 — sem meta e valor, o KPI não mede nada.
+ *  Campos vazios voltam a null (= não medido), nunca viram 0. */
+export async function salvarMedicaoIndicador(
+  id: string,
+  dados: {
+    meta?: number | null;
+    valorAtual?: number | null;
+    unidade?: string | null;
+    direcao?: DirecaoIndicador;
+  },
+) {
+  await guard();
+  const patch: Record<string, unknown> = { atualizadoEm: new Date() };
+  if ("meta" in dados) patch.meta = dados.meta == null ? null : String(dados.meta);
+  if ("valorAtual" in dados) patch.valorAtual = dados.valorAtual == null ? null : String(dados.valorAtual);
+  if ("unidade" in dados) patch.unidade = dados.unidade?.trim() || null;
+  if ("direcao" in dados && dados.direcao) patch.direcao = dados.direcao;
+
+  await db.update(indicador).set(patch).where(eq(indicador.id, id));
   refresh();
   return { ok: true as const };
 }
@@ -76,10 +101,28 @@ export async function gerarDiagnostico(setorId: string) {
     })
     .map((c) => c.nome);
 
+  // KPIs: ausente (nem se mede), sem medição (declarado mas vazio) e
+  // abaixo da meta (medido e doendo) são três problemas diferentes.
+  const kpisMedidos = kpis
+    .filter((k) => !k.ehAusencia)
+    .map((k) => ({
+      nome: k.nome,
+      atingimento: atingimentoKpi({
+        meta: k.meta == null ? null : Number(k.meta),
+        valorAtual: k.valorAtual == null ? null : Number(k.valorAtual),
+        direcao: k.direcao,
+        ehAusencia: false,
+      }),
+    }));
+
   const retrato: RetratoSetor = {
     maturidadePorNivel: m.porNivel,
     sistemasFaltantes: sistemas.filter((s) => s.ehNecessidade).map((s) => s.nome),
     kpisAusentes: kpis.filter((k) => k.ehAusencia).map((k) => k.nome),
+    kpisSemMedicao: kpisMedidos.filter((k) => k.atingimento === null).map((k) => k.nome),
+    kpisAbaixoDaMeta: kpisMedidos
+      .filter((k): k is { nome: string; atingimento: number } => k.atingimento !== null && k.atingimento < 80)
+      .map((k) => ({ nome: k.nome, atingimento: Math.round(k.atingimento) })),
     processosFracos: m.detalhe.processos.porProcesso
       .filter((p): p is { nome: string; media: number } => p.media !== null && p.media < 40)
       .map((p) => ({ nome: p.nome, media: Math.round(p.media) })),

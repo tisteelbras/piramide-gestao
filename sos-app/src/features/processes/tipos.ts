@@ -17,6 +17,7 @@ export type TipoProcesso =
   | "monitoramento"
   | "kpi"
   | "disciplina_operacional"
+  | "gestao_objetivos"
   | "outro";
 
 export const TIPOS_PROCESSO: { id: TipoProcesso; label: string; resultado: string | null }[] = [
@@ -28,8 +29,19 @@ export const TIPOS_PROCESSO: { id: TipoProcesso; label: string; resultado: strin
   // aderência, cumprimento, controles, monitoramento e melhoria. É onde
   // vive a pergunta "estamos executando com disciplina?".
   { id: "disciplina_operacional", label: "Disciplina Operacional (execução dos processos)", resultado: "Resultado da Disciplina Operacional" },
+  // Gestão por Objetivos: só se faz DEPOIS que os processos estão
+  // alinhados — por isso é resultado, não visão. Responde "o que
+  // precisamos entregar?" com os processos já de pé.
+  { id: "gestao_objetivos", label: "Gestão por Objetivos (o que precisamos entregar?)", resultado: "Resultado da Gestão por Objetivos" },
   { id: "outro", label: "Outros (só conta em Processos)", resultado: null },
 ];
+
+/** Tipos que alimentam o N4, na ordem em que aparecem em Resultados.
+ *  Fonte única: o motor de maturidade deriva daqui, para que cadastrar
+ *  um tipo novo nunca mais exija editar o cálculo em outro arquivo. */
+export const TIPOS_COM_RESULTADO = TIPOS_PROCESSO.filter(
+  (t): t is { id: TipoProcesso; label: string; resultado: string } => t.resultado !== null,
+);
 
 export type ProcessoComEixos = {
   id: string;

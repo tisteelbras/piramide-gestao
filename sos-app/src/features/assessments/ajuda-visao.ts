@@ -193,30 +193,9 @@ export const AJUDA_ETAPAS: AjudaEtapa[] = [
       },
     ],
   },
-  {
-    prefixo: "Gestão por Objetivos",
-    titulo: "Gestão por Objetivos",
-    perguntaChave: "Sabemos o que precisa ser entregue?",
-    blocos: [
-      {
-        tipo: "paragrafo",
-        texto:
-          "Avalia se o setor trabalha com metas claras, indicadores e acompanhamento dos resultados, garantindo alinhamento com os objetivos da organização. Avalia também se existem objetivos claros, prioridades definidas e uma estratégia conhecida pela equipe para orientar as decisões do dia a dia.",
-      },
-      {
-        tipo: "lista",
-        titulo: "O que considerar",
-        itens: [
-          "Metas definidas",
-          "Indicadores",
-          "Acompanhamento periódico",
-          "Alinhamento com a empresa",
-          "Objetivos estratégicos e prioridades do setor",
-          "Comunicação da estratégia e clareza na direção",
-        ],
-      },
-    ],
-  },
+  // "Gestão por Objetivos" saiu da Visão: só se faz depois que os processos
+  // estão alinhados, então é resultado, não concepção. Virou um tipo de
+  // processo (gestao_objetivos) — ver features/processes/tipos.ts.
   {
     prefixo: "Diretrizes Operacionais",
     titulo: "Diretrizes Operacionais",

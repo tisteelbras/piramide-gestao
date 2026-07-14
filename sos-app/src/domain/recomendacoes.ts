@@ -22,6 +22,10 @@ export type RetratoSetor = {
   sistemasFaltantes: string[];
   // KPIs marcados como ausentes.
   kpisAusentes: string[];
+  // KPIs cadastrados sem meta ou sem valor atual — declarados, mas sem medição.
+  kpisSemMedicao: string[];
+  // KPIs medidos longe da meta: { nome, atingimento }.
+  kpisAbaixoDaMeta: { nome: string; atingimento: number }[];
   // Processos com média baixa: { nome, media }.
   processosFracos: { nome: string; media: number }[];
   // Colaboradores com média baixa: nomes.
@@ -58,6 +62,27 @@ export function gerarRecomendacoes(r: RetratoSetor): RecomendacaoGerada[] {
         : `O indicador "${k}" está ausente. Defina meta, fonte e periodicidade de medição.`,
       prioridade: 2,
       impactoEsperado: "Visibilidade de desempenho e decisão baseada em dados.",
+    });
+  }
+
+  // Regra 2b: KPI declarado mas sem medição (falta meta ou valor atual).
+  // Diferente do ausente: aqui a área SABE o que medir e ainda não mede.
+  for (const k of r.kpisSemMedicao) {
+    recs.push({
+      titulo: `Medir o indicador: ${k}`,
+      detalhe: `O indicador "${k}" está cadastrado, mas sem meta ou sem valor atual — então ele não mede nada. Defina a meta, a fonte do dado e a periodicidade.`,
+      prioridade: 2,
+      impactoEsperado: "O indicador passa a gerar resultado e entra no nível Resultados.",
+    });
+  }
+
+  // Regra 2c: KPI medido, mas longe da meta → é aqui que o resultado dói.
+  for (const k of r.kpisAbaixoDaMeta) {
+    recs.push({
+      titulo: `Recuperar o indicador: ${k.nome}`,
+      detalhe: `"${k.nome}" está em ${k.atingimento}% da meta. Investigue a causa raiz antes de mudar a meta — o número é sintoma, não doença.`,
+      prioridade: k.atingimento < 50 ? 1 : 2,
+      impactoEsperado: "Resultado de KPI mais alto e meta ao alcance.",
     });
   }
 
