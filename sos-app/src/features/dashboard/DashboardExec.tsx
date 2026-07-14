@@ -23,11 +23,19 @@ function corCelula(v: number): { bg: string; fg: string } {
   return { bg: "#cfe9d2", fg: "#1f5b28" };
 }
 
+// Organograma consolidado (só o que o dashboard precisa exibir).
+type OrganogramaResumo = {
+  setorId: string;
+  setorNome: string;
+  pessoas: { id: string }[];
+}[];
+
 export default function DashboardExec({
   usuarioNome,
   dados,
   ferramentas,
   governanca,
+  organograma,
   inicio,
 }: {
   usuarioNome: string | null;
@@ -36,6 +44,8 @@ export default function DashboardExec({
   ferramentas?: ResumoFerramentas;
   // Ciclos, metas e histórico — opcional pelo mesmo motivo.
   governanca?: GovernancaDTO;
+  // Estrutura das áreas — opcional pelo mesmo motivo.
+  organograma?: OrganogramaResumo;
   // Presente quando o dashboard é a tela inicial: saudação, resumo do
   // conceito e tutorial de boas-vindas no 1º acesso.
   inicio?: { mostrarTutorial: boolean };
@@ -58,6 +68,7 @@ export default function DashboardExec({
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <Link href="/relatorio-executivo" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#47ad4b", padding: "9px 14px", borderRadius: 8, boxShadow: "0 4px 12px rgba(71,173,75,.3)" }}>⭳ Relatório executivo</Link>
+          <Link href="/organograma" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>🏛 Organograma</Link>
           <Link href="/setores" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#0068a9", padding: "9px 14px", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,104,169,.25)" }}>▦ Setores</Link>
           <Link href="/ferramentas" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>🧰 Ferramentas</Link>
           <Link href="/sobre" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>ℹ️ O NEXO</Link>
@@ -259,6 +270,55 @@ export default function DashboardExec({
             <CompararSetores setores={dados.setores} />
           </Card>
         )}
+
+        {/* Estrutura da empresa: organogramas consolidados */}
+        {organograma && organograma.length > 0 && (() => {
+          const mapeadas = organograma.filter((s) => s.pessoas.length > 0);
+          const pendentes = organograma.filter((s) => s.pessoas.length === 0);
+          const totalPessoas = organograma.reduce((t, s) => t + s.pessoas.length, 0);
+          return (
+            <Card>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <Titulo>Estrutura da empresa (organograma)</Titulo>
+                <Link href="/organograma" style={{ marginLeft: "auto", marginBottom: 12, fontSize: 12, fontWeight: 700, color: "#0068a9", textDecoration: "none" }}>
+                  ver organograma geral ›
+                </Link>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 14 }}>
+                <div style={{ background: "#f4f8fb", borderRadius: 10, padding: "12px 14px" }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".05em", color: "#8493a0" }}>Áreas mapeadas</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: "#0068a9", fontVariantNumeric: "tabular-nums" }}>
+                    {mapeadas.length}<span style={{ fontSize: 15, color: "#8493a0" }}> / {organograma.length}</span>
+                  </div>
+                </div>
+                <div style={{ background: "#f4f8fb", borderRadius: 10, padding: "12px 14px" }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".05em", color: "#8493a0" }}>Pessoas</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: "#47ad4b", fontVariantNumeric: "tabular-nums" }}>{totalPessoas}</div>
+                </div>
+                <div style={{ background: "#f4f8fb", borderRadius: 10, padding: "12px 14px" }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".05em", color: "#8493a0" }}>Áreas pendentes</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: pendentes.length ? "#c0392b" : "#33853a", fontVariantNumeric: "tabular-nums" }}>{pendentes.length}</div>
+                </div>
+              </div>
+
+              {pendentes.length > 0 && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#8493a0" }}>Faltam montar:</span>
+                  {pendentes.map((s) => (
+                    <Link
+                      key={s.setorId}
+                      href={`/setor/${s.setorId}/organograma`}
+                      style={{ textDecoration: "none", fontSize: 12, fontWeight: 700, color: "#8a5a08", background: "#fdf3e0", border: "1px solid #f0dcb4", borderRadius: 999, padding: "4px 11px" }}
+                    >
+                      {s.setorNome} ›
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </Card>
+          );
+        })()}
       </div>
     </div>
   );
