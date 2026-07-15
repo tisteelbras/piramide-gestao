@@ -6,6 +6,7 @@ import { NIVEIS } from "@/features/assessments/tipos";
 import Radar from "./Radar";
 import EvolucaoChart from "./EvolucaoChart";
 import CompararSetores from "./CompararSetores";
+import PainelHoje from "./PainelHoje";
 import type { DadosDashboard } from "./queries";
 import { ROTULO_QUADRANTE, type Quadrante, type ResumoFerramentas } from "@/features/ferramentas/tipos";
 import { ROTULO_ESTADO, type GovernancaDTO } from "@/features/governanca/tipos";
@@ -82,6 +83,24 @@ export default function DashboardExec({
       </header>
 
       <div style={{ maxWidth: 1160, margin: "0 auto", display: "grid", gap: 16 }}>
+        {/* "O que fazer hoje" — primeira coisa na home. Só na tela inicial e
+            quando temos os ciclos (a governança traz o estado de cada um). */}
+        {inicio && governanca && (
+          <PainelHoje
+            ciclos={governanca.ciclos.map((c) => ({
+              setorId: c.setorId,
+              setorNome: c.setorNome,
+              estado: c.estado,
+              diasRestantes: c.diasRestantes,
+            }))}
+            setores={dados.setores.map((s) => ({
+              id: s.id,
+              nome: s.nome,
+              acoesAtrasadas: s.acoesAtrasadas,
+            }))}
+          />
+        )}
+
         {/* Resumo do conceito (tela inicial) */}
         {inicio && (
           <div style={{ display: "flex", alignItems: "center", gap: 14, background: "linear-gradient(90deg, #eaf2f8, #f2faf3)", border: "1px solid #d7e8f4", borderRadius: 14, padding: "14px 18px", flexWrap: "wrap" }}>
