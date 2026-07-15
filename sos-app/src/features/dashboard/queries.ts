@@ -24,10 +24,19 @@ export type DadosDashboard = {
   totalPendencias: number;
   totalAcoesAtrasadas: number;
   totalAcoesAbertas: number;
+  // "empresa" = admin/direção (todas as áreas); "setor" = líder (só a dele).
+  escopo: "empresa" | "setor";
 };
 
-export async function carregarDashboard(): Promise<DadosDashboard> {
-  const setores = await listarSetores();
+/**
+ * Dados do dashboard. `apenasSetorId` restringe ao setor do líder — o filtro
+ * acontece no SERVIDOR (o líder nem carrega dados das outras áreas). Sem ele,
+ * é a visão consolidada de admin/direção.
+ */
+export async function carregarDashboard(apenasSetorId?: string | null): Promise<DadosDashboard> {
+  const todos = await listarSetores();
+  const setores = apenasSetorId ? todos.filter((s) => s.id === apenasSetorId) : todos;
+  const escopo: "empresa" | "setor" = apenasSetorId ? "setor" : "empresa";
   const linhas: LinhaSetor[] = await Promise.all(
     setores.map(async (s) => {
       const [m, plano] = await Promise.all([maturidadeDoSetor(s.id), carregarPlanoDoSetor(s.id)]);
@@ -53,5 +62,5 @@ export async function carregarDashboard(): Promise<DadosDashboard> {
   const totalAcoesAtrasadas = linhas.reduce((a, l) => a + l.acoesAtrasadas, 0);
   const totalAcoesAbertas = linhas.reduce((a, l) => a + (l.acoesTotal - l.acoesConcluidas), 0);
 
-  return { setores: linhas, mediaEmpresa, radarEmpresa, totalPendencias, totalAcoesAtrasadas, totalAcoesAbertas };
+  return { setores: linhas, mediaEmpresa, radarEmpresa, totalPendencias, totalAcoesAtrasadas, totalAcoesAbertas, escopo };
 }

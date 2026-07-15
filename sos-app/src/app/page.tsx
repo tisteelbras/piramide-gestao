@@ -10,14 +10,20 @@ import { organogramaDaEmpresa } from "@/features/organograma/queries";
 
 export default async function Home() {
   const session = await auth();
-  const [dados, ferramentas, governanca, mostrarTutorial, organograma, perfil, papel] = await Promise.all([
-    carregarDashboard(),
+
+  // O papel decide o escopo: líder vê só o seu setor; admin/direção veem tudo.
+  // Resolvemos o papel PRIMEIRO para filtrar o dashboard no servidor.
+  const papel = await papelDoUsuario(session?.user?.id);
+  const filtroSetor =
+    papel?.papel === "lider" && papel.setorId ? papel.setorId : null;
+
+  const [dados, ferramentas, governanca, mostrarTutorial, organograma, perfil] = await Promise.all([
+    carregarDashboard(filtroSetor),
     resumoFerramentas(),
-    carregarGovernanca(),
+    carregarGovernanca(filtroSetor),
     tutorialPendente(session?.user?.id),
     organogramaDaEmpresa(),
     perfilBasico(session?.user?.id),
-    papelDoUsuario(session?.user?.id),
   ]);
   return (
     <DashboardExec

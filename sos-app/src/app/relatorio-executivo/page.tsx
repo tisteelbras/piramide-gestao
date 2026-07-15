@@ -4,6 +4,9 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+import { papelDoUsuario } from "@/features/governanca/queries";
 import { montarRelatorioExecutivo } from "@/features/pdf-export/queries-executivo";
 import BotaoImprimir from "@/features/pdf-export/BotaoImprimir";
 import EvolucaoChart from "@/features/dashboard/EvolucaoChart";
@@ -15,6 +18,11 @@ const PRIO_COR: Record<number, string> = { 1: "#c0392b", 2: "#d98a00", 3: "#0068
 const COR_ESTADO: Record<string, string> = { em_dia: "#33853a", alerta: "#8a5a08", atrasada: "#c0392b" };
 
 export default async function RelatorioExecutivoPage() {
+  // Relatório de TODAS as áreas — só admin/direção. Líder volta para a home.
+  const session = await auth();
+  const perfil = await papelDoUsuario(session?.user?.id);
+  if (perfil?.papel === "lider") redirect("/");
+
   const rel = await montarRelatorioExecutivo();
   const grau = grauMaturidade(rel.dashboard.mediaEmpresa);
   const dataFmt = rel.data.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });

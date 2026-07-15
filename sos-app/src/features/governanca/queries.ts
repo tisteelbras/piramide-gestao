@@ -25,10 +25,11 @@ export async function papelDoUsuario(userId: string | undefined): Promise<{ pape
   return u ? { papel: u.papel, setorId: u.setorId } : null;
 }
 
-/** Situação de ciclo, meta e tendência de todos os setores + histórico. */
-export async function carregarGovernanca(): Promise<GovernancaDTO> {
+/** Situação de ciclo, meta e tendência dos setores + histórico. Com
+ *  `apenasSetorId`, restringe ao setor do líder (filtro no servidor). */
+export async function carregarGovernanca(apenasSetorId?: string | null): Promise<GovernancaDTO> {
   const emp = await getEmpresa();
-  const [politica, setores, snapshots, metas] = await Promise.all([
+  const [politica, todosSetores, snapshots, metas] = await Promise.all([
     carregarPolitica(),
     listarSetores(),
     db.query.cicloSnapshot.findMany({
@@ -37,6 +38,7 @@ export async function carregarGovernanca(): Promise<GovernancaDTO> {
     }),
     db.query.metaSetor.findMany(),
   ]);
+  const setores = apenasSetorId ? todosSetores.filter((s) => s.id === apenasSetorId) : todosSetores;
   const metaPorSetor = new Map(metas.map((m) => [m.setorId, m.meta]));
 
   const ciclos = await Promise.all(

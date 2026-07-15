@@ -57,6 +57,9 @@ export default function DashboardExec({
   inicio?: { mostrarTutorial: boolean };
 }) {
   const grauEmpresa = grauMaturidade(dados.mediaEmpresa);
+  // Escopo do dashboard: líder vê só a área dele; admin/direção veem a empresa.
+  const soSetor = dados.escopo === "setor";
+  const nomeArea = soSetor ? dados.setores[0]?.nome ?? "sua área" : null;
   const cicloDe = (setorId: string) => governanca?.ciclos.find((c) => c.setorId === setorId);
   const atrasadas = governanca?.ciclos.filter((c) => c.estado === "atrasada") ?? [];
   const emAlerta = governanca?.ciclos.filter((c) => c.estado === "alerta") ?? [];
@@ -78,10 +81,20 @@ export default function DashboardExec({
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <Link href="/relatorio-executivo" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#47ad4b", padding: "9px 14px", borderRadius: 8, boxShadow: "0 4px 12px rgba(71,173,75,.3)" }}>⭳ Relatório executivo</Link>
-          <Link href="/organograma" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>🏛 Organograma</Link>
-          <Link href="/setores" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#0068a9", padding: "9px 14px", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,104,169,.25)" }}>▦ Setores</Link>
+          {soSetor && dados.setores[0] ? (
+            // Líder: acesso direto à área dele, sem as visões da empresa toda.
+            <Link href={`/setor/${dados.setores[0].id}`} style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#0068a9", padding: "9px 14px", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,104,169,.25)" }}>▦ Minha área</Link>
+          ) : (
+            <>
+              <Link href="/relatorio-executivo" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#47ad4b", padding: "9px 14px", borderRadius: 8, boxShadow: "0 4px 12px rgba(71,173,75,.3)" }}>⭳ Relatório executivo</Link>
+              <Link href="/organograma" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>🏛 Organograma</Link>
+              <Link href="/setores" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#0068a9", padding: "9px 14px", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,104,169,.25)" }}>▦ Setores</Link>
+            </>
+          )}
           <Link href="/ferramentas" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>🧰 Ferramentas</Link>
+          {papel === "admin" && (
+            <Link href="/usuarios" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>👥 Usuários</Link>
+          )}
           <Link href="/sobre" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>ℹ️ O NEXO</Link>
           {usuarioNome && (
             <>
@@ -114,10 +127,10 @@ export default function DashboardExec({
         {/* Linha 1: hero + radar + pendências */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr 1fr", gap: 16 }}>
           <Card>
-            <Titulo>Maturidade da empresa</Titulo>
+            <Titulo>{soSetor ? "Maturidade da área" : "Maturidade da empresa"}</Titulo>
             <div style={{ fontSize: 52, fontWeight: 800, color: "#0068a9", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{dados.mediaEmpresa}%</div>
             <span style={{ display: "inline-block", marginTop: 8, fontSize: 12, fontWeight: 800, color: "#fff", background: "#0068a9", padding: "3px 10px", borderRadius: 999 }}>{ROTULO_MATURIDADE[grauEmpresa]}</span>
-            <p style={{ margin: "12px 0 0", fontSize: 12.5, color: "#8493a0" }}>Média de {dados.setores.length} áreas avaliadas.</p>
+            <p style={{ margin: "12px 0 0", fontSize: 12.5, color: "#8493a0" }}>{soSetor ? nomeArea : `Média de ${dados.setores.length} áreas avaliadas.`}</p>
           </Card>
           <Card>
             <Titulo>Radar dos 4 níveis</Titulo>
@@ -126,7 +139,7 @@ export default function DashboardExec({
           <Card>
             <Titulo>Pendências</Titulo>
             <div style={{ fontSize: 52, fontWeight: 800, color: dados.totalPendencias > 0 ? "#d98a00" : "#33853a", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{dados.totalPendencias}</div>
-            <p style={{ margin: "12px 0 0", fontSize: 12.5, color: "#8493a0" }}>Critérios ainda não respondidos em todas as áreas.</p>
+            <p style={{ margin: "12px 0 0", fontSize: 12.5, color: "#8493a0" }}>{soSetor ? "Critérios ainda não respondidos na sua área." : "Critérios ainda não respondidos em todas as áreas."}</p>
           </Card>
           <Card>
             <Titulo>Plano de ação</Titulo>
@@ -261,7 +274,8 @@ export default function DashboardExec({
           </Card>
         )}
 
-        {/* Ranking / comparação */}
+        {/* Ranking / comparação — só faz sentido com várias áreas (admin/direção). */}
+        {!soSetor && (
         <Card>
           <Titulo>Comparação de áreas</Titulo>
           <div style={{ display: "grid", gap: 8 }}>
@@ -294,6 +308,7 @@ export default function DashboardExec({
             <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "#8493a0" }}>O traço escuro na barra indica a meta de maturidade da área (definida em Parâmetros).</p>
           )}
         </Card>
+        )}
 
         {/* Comparativo par-a-par entre dois setores */}
         {dados.setores.length >= 2 && (
