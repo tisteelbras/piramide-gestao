@@ -107,6 +107,7 @@ export default function PainelResultados({
 }) {
   const [novo, setNovo] = useState("");
   const [gerando, setGerando] = useState(false);
+  const [avisoIA, setAvisoIA] = useState<"sem_config" | "falha" | null>(null);
   const [abrindo, setAbrindo] = useState<string | null>(null);
   const [, start] = useTransition();
   const router = useRouter();
@@ -166,21 +167,45 @@ export default function PainelResultados({
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: resultados.recomendacoes.length ? 14 : 0, flexWrap: "wrap" }}>
           <div>
             <div style={{ fontSize: 14, fontWeight: 800, color: BLUE_D }}>Diagnóstico automático</div>
-            <div style={{ fontSize: 12, color: "#5b6b78" }}>Analisa todos os níveis e gera recomendações priorizadas.</div>
+            <div style={{ fontSize: 12, color: "#5b6b78" }}>Regras + IA cruzam todos os níveis e geram recomendações priorizadas.</div>
           </div>
           <button
-            onClick={() => { setGerando(true); run(async () => { await gerarDiagnostico(setorId); setGerando(false); }); }}
+            onClick={() => {
+              setGerando(true);
+              start(async () => {
+                const r = await gerarDiagnostico(setorId);
+                setAvisoIA(r?.ia && r.ia.motivo !== "ok" ? r.ia.motivo : null);
+                setGerando(false);
+                router.refresh();
+              });
+            }}
             disabled={gerando}
             style={{ marginLeft: "auto", border: "none", background: gerando ? "#7fb4d8" : BLUE, color: "#fff", fontWeight: 700, fontSize: 13, padding: "10px 16px", borderRadius: 10, cursor: gerando ? "default" : "pointer", boxShadow: "0 4px 12px rgba(0,104,169,.25)" }}>
             {gerando ? "Analisando…" : "⚡ Gerar diagnóstico"}
           </button>
         </div>
 
+        {/* Aviso quando a camada de IA não rodou — o diagnóstico por regra
+            está completo mesmo assim. */}
+        {avisoIA && (
+          <div style={{ margin: "0 0 12px", fontSize: 12, color: "#8a6d00", background: "#fff8e6", border: "1px solid #f0e0a8", borderRadius: 8, padding: "8px 11px" }}>
+            {avisoIA === "sem_config"
+              ? "As recomendações abaixo são as das regras. A camada de IA está desligada — configure uma chave em .env.local (AI_API_KEY) para ativá-la."
+              : "A camada de IA não respondeu desta vez; mostrando as recomendações das regras. Tente gerar de novo em instantes."}
+          </div>
+        )}
+
         <div style={{ display: "grid", gap: 8 }}>
           {resultados.recomendacoes.map((r) => (
             <div key={r.id} style={{ background: "#fff", border: "1px solid #e3ebf1", borderRadius: 10, padding: "10px 12px", borderLeft: `4px solid ${PRIO_COR[r.prioridade] ?? BLUE}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 10.5, fontWeight: 800, color: "#fff", background: PRIO_COR[r.prioridade] ?? BLUE, padding: "2px 7px", borderRadius: 999 }}>P{r.prioridade}</span>
+                {r.origem === "ia" && (
+                  <span title="Recomendação da análise por IA, cruzando os 4 níveis"
+                    style={{ fontSize: 10.5, fontWeight: 800, color: "#6b3fa0", background: "#f3edfb", border: "1px solid #d9c9f0", padding: "2px 7px", borderRadius: 999 }}>
+                    ✨ IA
+                  </span>
+                )}
                 <span style={{ fontWeight: 800, fontSize: 13.5, color: INK }}>{r.titulo}</span>
                 {r.persistencia && (
                   <span title="Esta recomendação sobreviveu a fechamentos de ciclo anteriores"

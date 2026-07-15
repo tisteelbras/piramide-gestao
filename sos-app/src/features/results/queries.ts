@@ -86,6 +86,7 @@ export async function carregarResultados(setorId: string) {
       detalhe: r.detalhe,
       prioridade: Number(r.prioridade),
       impactoEsperado: r.impactoEsperado,
+      origem: r.origem,
       persistencia: textoPersistencia(ciclosDesde(r.criadoEm)),
     })),
     evolucao,

@@ -24,6 +24,9 @@ export type RecomendacaoItem = {
   detalhe: string | null;
   prioridade: number;
   impactoEsperado: string | null;
+  /** "regra" (determinística) ou "ia" (análise cruzada). A UI marca as de
+   *  IA com um selo. */
+  origem: "regra" | "ia";
   /** Frase "avisado há N ciclos" quando a recomendação persiste entre
    *  fechamentos. null quando é nova ou não há ciclo anterior. */
   persistencia: string | null;

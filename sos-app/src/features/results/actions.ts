@@ -10,8 +10,10 @@ import {
 import { auth } from "@/auth";
 import { getEmpresa } from "@/features/assessments/queries";
 import { maturidadeDoSetor } from "@/features/assessments/maturidade-setor";
-import { gerarRecomendacoes, type RetratoSetor } from "@/domain/recomendacoes";
+import { gerarRecomendacoes, type RetratoSetor, type RecomendacaoGerada } from "@/domain/recomendacoes";
 import { atingimentoKpi, type DirecaoIndicador } from "@/domain/indicadores";
+import { lerConfigIA } from "@/domain/ia/provedor";
+import { gerarRecomendacoesIA } from "@/domain/ia/recomendacoes-ia";
 
 async function guard() {
   const s = await auth();
@@ -129,28 +131,41 @@ export async function gerarDiagnostico(setorId: string) {
     colaboradoresBaixaMedia,
   };
 
-  // 2) Regrava as recomendações (origem 'regra') deste setor PRESERVANDO
-  //    a data das que reaparecem. O título é a identidade: uma recomendação
-  //    com o mesmo título que já existia mantém seu criadoEm — é assim que
-  //    o diagnóstico sabe "isto persiste há N ciclos" em vez de esquecer a
-  //    cada rodada (antes um delete+insert cego zerava a data toda vez).
-  const geradas = gerarRecomendacoes(retrato);
-  const existentes = await db.query.recomendacao.findMany({
-    where: and(eq(recomendacao.setorId, setorId), eq(recomendacao.origem, "regra")),
-  });
-  const dataPorTitulo = new Map(existentes.map((e) => [e.titulo, e.criadoEm]));
+  // 2) Regrava as recomendações POR ORIGEM, preservando a data das que
+  //    reaparecem (o título é a identidade — é assim que "persiste há N
+  //    ciclos" funciona sem zerar a cada rodada).
+  const regravar = async (origem: "regra" | "ia", geradas: RecomendacaoGerada[]) => {
+    const existentes = await db.query.recomendacao.findMany({
+      where: and(eq(recomendacao.setorId, setorId), eq(recomendacao.origem, origem)),
+    });
+    const dataPorTitulo = new Map(existentes.map((e) => [e.titulo, e.criadoEm]));
+    await db.delete(recomendacao).where(and(eq(recomendacao.setorId, setorId), eq(recomendacao.origem, origem)));
+    if (geradas.length > 0) {
+      await db.insert(recomendacao).values(
+        geradas.map((g) => ({
+          empresaId: emp.id, setorId, titulo: g.titulo, detalhe: g.detalhe,
+          prioridade: String(g.prioridade), impactoEsperado: g.impactoEsperado, origem,
+          criadoEm: dataPorTitulo.get(g.titulo) ?? new Date(),
+        })),
+      );
+    }
+  };
 
-  await db.delete(recomendacao).where(and(eq(recomendacao.setorId, setorId), eq(recomendacao.origem, "regra")));
-  if (geradas.length > 0) {
-    await db.insert(recomendacao).values(
-      geradas.map((g) => ({
-        empresaId: emp.id, setorId, titulo: g.titulo, detalhe: g.detalhe,
-        prioridade: String(g.prioridade), impactoEsperado: g.impactoEsperado, origem: "regra" as const,
-        // Recomendação que reaparece herda a data de quando surgiu.
-        criadoEm: dataPorTitulo.get(g.titulo) ?? new Date(),
-      })),
-    );
-  }
+  // Regra: sempre roda (determinística, offline).
+  const geradas = gerarRecomendacoes(retrato);
+  await regravar("regra", geradas);
+
+  // IA: SOMA às regras (origem 'ia'). Se não houver chave ou a IA falhar,
+  // não quebra nada — as recomendações 'ia' anteriores são limpas e o
+  // diagnóstico por regra segue de pé. Motivo volta para a UI avisar.
+  const cfgIA = lerConfigIA();
+  const resIA = await gerarRecomendacoesIA(retrato, cfgIA);
+  await regravar("ia", resIA.recomendacoes);
+
   refresh();
-  return { ok: true as const, total: geradas.length };
+  return {
+    ok: true as const,
+    total: geradas.length + resIA.recomendacoes.length,
+    ia: { motivo: resIA.motivo, total: resIA.recomendacoes.length },
+  };
 }
