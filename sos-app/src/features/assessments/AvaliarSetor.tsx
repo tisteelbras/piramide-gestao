@@ -263,7 +263,7 @@ export default function AvaliarSetor({
           {nivelAtivo === "resultados" && (
             <div>
               <p style={{ margin: "0 0 14px", fontSize: 13.5, color: "#8493a0" }}>
-                O Resultado <b>não se preenche</b>: ele é a consequência do que foi executado. Cadastre um processo do tipo correspondente em <b>Processos</b> — e meça os <b>KPIs</b> abaixo — que o resultado aparece aqui.
+                O Resultado <b>não se preenche</b>: ele é a consequência do que foi executado. Cadastre um processo do tipo correspondente em <b>Processos</b> — e meça os <b>indicadores</b> na etapa Indicadores de Desempenho da Visão — que o resultado aparece aqui.
               </p>
               <div style={{ display: "grid", gap: 10 }}>
                 {topicosResultado.map((t) => (

@@ -11,9 +11,6 @@ import type { ResultadosDoSetor } from "./tipos";
 const BLUE = "#0068a9", BLUE_D = "#004e80", INK = "#0e1a24";
 const PRIO_COR: Record<number, string> = { 1: "#c0392b", 2: "#d98a00", 3: "#0068a9", 4: "#5b6b78", 5: "#8493a0" };
 
-/** Cor do atingimento: verde bateu, âmbar perto, vermelho longe. */
-const corAtingimento = (n: number) => (n >= 90 ? "#33853a" : n >= 70 ? "#d98a00" : "#c0392b");
-
 export default function PainelResultados({
   setorId,
   resultados,
@@ -46,36 +43,10 @@ export default function PainelResultados({
 
   return (
     <div style={{ marginTop: 18, borderTop: "1px solid #e3ebf1", paddingTop: 16 }}>
-      {/* Indicadores (KPIs) — agora se CADASTRAM na etapa "Indicadores de
-          Desempenho" da Visão. Aqui no N4 é só leitura: mostra o atingimento
-          de cada um e remete à etapa para medir/ajustar. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: INK }}>Indicadores (KPIs)</h4>
-        <a href={`/setor/${setorId}/indicadores`} style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: "#0068a9", textDecoration: "none" }}>
-          gerir na etapa Indicadores da Visão ›
-        </a>
-      </div>
-      {resultados.indicadores.length === 0 ? (
-        <p style={{ fontSize: 12.5, color: "#8493a0", margin: "4px 0 0", fontStyle: "italic" }}>
-          Nenhum indicador ainda. Cadastre-os na etapa <b>Indicadores de Desempenho</b> da Visão — cada um vira processo e alimenta este resultado.
-        </p>
-      ) : (
-        <>
-          <div style={{ display: "grid", gap: 6 }}>
-            {resultados.indicadores.map((i) => (
-              <div key={i.id} style={{ display: "flex", alignItems: "center", gap: 10, border: "1px solid #eef3f7", borderRadius: 8, padding: "7px 11px" }}>
-                <span style={{ fontWeight: 700, fontSize: 13, color: INK }}>{i.nome}</span>
-                <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 800, color: i.atingimento == null ? "#a2afba" : corAtingimento(i.atingimento) }}>
-                  {i.ehAusencia ? "ausente" : i.atingimento == null ? "sem medição" : `${i.atingimento}% da meta`}
-                </span>
-              </div>
-            ))}
-          </div>
-          <p style={{ fontSize: 12, color: "#8493a0", marginTop: 6 }}>
-            O atingimento de cada indicador (valor × meta) forma a nota de <b>Resultado de KPI</b>. Para medir ou ajustar, use a etapa Indicadores da Visão.
-          </p>
-        </>
-      )}
+      {/* Os indicadores (KPIs) NÃO aparecem aqui: eles se cadastram e se medem
+          na etapa "Indicadores de Desempenho" da Visão. No N4, o desempenho
+          deles entra apenas consolidado, como o card "Resultado de KPI" nos
+          tópicos acima. */}
 
       {/* Evolução desde o último ciclo */}
       {resultados.evolucao && <PainelEvolucao ev={resultados.evolucao} />}
