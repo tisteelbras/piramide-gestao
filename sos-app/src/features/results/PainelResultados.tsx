@@ -114,8 +114,8 @@ export default function PainelResultados({
   const abrirPlano = (recId: string, titulo: string, detalhe: string | null) => {
     setAbrindo(recId);
     start(async () => {
-      await criarPlanoDaRecomendacao(setorId, titulo, detalhe);
-      router.push("/ferramentas/5w2h");
+      await criarPlanoDaRecomendacao(setorId, titulo, detalhe, recId);
+      router.push(`/setor/${setorId}/plano`);
     });
   };
   const abrirIshikawa = (recId: string, titulo: string) => {

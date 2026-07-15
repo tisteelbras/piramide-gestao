@@ -85,6 +85,13 @@
       "when": 1784063088299,
       "tag": "0011_clear_talisman",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1784112546646,
+      "tag": "0012_crazy_husk",
+      "breakpoints": true
     }
   ]
 }

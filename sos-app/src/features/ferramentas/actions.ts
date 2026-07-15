@@ -23,6 +23,8 @@ const refresh = (rota: string) => {
   // A tela do setor mostra as ferramentas geradas dele; revalida a rota
   // dinâmica para a contagem atualizar ao voltar da ferramenta.
   revalidatePath("/setor/[id]", "page");
+  // O plano de ação por setor lê as ações 5W2H — mantém em dia.
+  revalidatePath("/setor/[id]/plano", "page");
 };
 
 // —————————————————— 5W2H ——————————————————
@@ -46,10 +48,28 @@ export async function addAcao5w2h(planoId: string, oQue: string) {
   refresh("/ferramentas/5w2h");
   return { ok: true as const };
 }
+
+/** Adiciona uma ação avulsa ao plano de ação de um setor. Se o setor ainda
+ *  não tem plano, cria um "Plano de ação — <setor>" e coloca a ação nele.
+ *  É o atalho da tela de plano por setor. */
+export async function addAcaoAoSetor(setorId: string, setorNome: string, oQue: string) {
+  const emp = await guard();
+  if (!oQue.trim()) return { ok: false as const };
+  let plano = await db.query.plano5w2h.findFirst({ where: eq(plano5w2h.setorId, setorId) });
+  if (!plano) {
+    [plano] = await db.insert(plano5w2h)
+      .values({ empresaId: emp.id, titulo: `Plano de ação — ${setorNome}`, setorId })
+      .returning();
+  }
+  await db.insert(acao5w2h).values({ planoId: plano.id, oQue: oQue.trim() });
+  refresh("/ferramentas/5w2h");
+  revalidatePath("/setor/[id]/plano", "page");
+  return { ok: true as const };
+}
 /** Atualiza os campos textuais de uma ação (salvos no blur da UI). */
 export async function atualizarAcao5w2h(
   id: string,
-  campos: Partial<{ oQue: string; porQue: string; onde: string; quando: string; quem: string; como: string; quantoCusta: string }>,
+  campos: Partial<{ oQue: string; porQue: string; onde: string; quando: string; quem: string; como: string; quantoCusta: string; prazo: string | null }>,
 ) {
   await guard();
   const limpo = Object.fromEntries(
@@ -64,7 +84,11 @@ export async function atualizarAcao5w2h(
 }
 export async function setStatusAcao5w2h(id: string, status: StatusAcao) {
   await guard();
-  await db.update(acao5w2h).set({ status, atualizadoEm: new Date() }).where(eq(acao5w2h.id, id));
+  // Concluir carimba a data (destrava o "atrasada" e mede o tempo de
+  // execução); reabrir limpa a data.
+  await db.update(acao5w2h)
+    .set({ status, concluidaEm: status === "concluida" ? new Date() : null, atualizadoEm: new Date() })
+    .where(eq(acao5w2h.id, id));
   refresh("/ferramentas/5w2h");
   return { ok: true as const };
 }
@@ -76,14 +100,25 @@ export async function removerAcao5w2h(id: string) {
 }
 
 /** Recomendação do diagnóstico → plano 5W2H já vinculado ao setor,
- *  com a primeira ação preenchida a partir da recomendação. */
-export async function criarPlanoDaRecomendacao(setorId: string, titulo: string, detalhe: string | null) {
+ *  com a primeira ação preenchida a partir da recomendação. A ação guarda
+ *  a recomendacaoId: é o elo que fecha o ciclo medir→recomendar→AGIR. */
+export async function criarPlanoDaRecomendacao(
+  setorId: string,
+  titulo: string,
+  detalhe: string | null,
+  recomendacaoId?: string | null,
+) {
   const emp = await guard();
   if (!titulo.trim()) return { ok: false as const };
   const [plano] = await db.insert(plano5w2h)
     .values({ empresaId: emp.id, titulo: titulo.trim(), setorId })
     .returning();
-  await db.insert(acao5w2h).values({ planoId: plano.id, oQue: titulo.trim(), porQue: detalhe?.trim() || null });
+  await db.insert(acao5w2h).values({
+    planoId: plano.id,
+    oQue: titulo.trim(),
+    porQue: detalhe?.trim() || null,
+    recomendacaoId: recomendacaoId || null,
+  });
   refresh("/ferramentas/5w2h");
   return { ok: true as const, planoId: plano.id };
 }

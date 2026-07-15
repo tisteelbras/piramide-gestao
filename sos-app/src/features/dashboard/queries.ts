@@ -1,6 +1,7 @@
 import "server-only";
 import { listarSetores } from "@/features/assessments/queries";
 import { maturidadeDoSetor } from "@/features/assessments/maturidade-setor";
+import { carregarPlanoDoSetor } from "@/features/action-plan/queries";
 import type { Nivel } from "@/features/assessments/tipos";
 
 export type LinhaSetor = {
@@ -9,6 +10,11 @@ export type LinhaSetor = {
   geral: number;
   porNivel: Record<Nivel, number>;
   pendencias: number;
+  // Plano de ação: o outro lado do diagnóstico.
+  acoesTotal: number;
+  acoesConcluidas: number;
+  acoesAtrasadas: number;
+  progressoPlano: number;
 };
 
 export type DadosDashboard = {
@@ -16,14 +22,22 @@ export type DadosDashboard = {
   mediaEmpresa: number;
   radarEmpresa: Record<Nivel, number>; // média dos setores por nível
   totalPendencias: number;
+  totalAcoesAtrasadas: number;
+  totalAcoesAbertas: number;
 };
 
 export async function carregarDashboard(): Promise<DadosDashboard> {
   const setores = await listarSetores();
   const linhas: LinhaSetor[] = await Promise.all(
     setores.map(async (s) => {
-      const m = await maturidadeDoSetor(s.id);
-      return { id: s.id, nome: s.nome, geral: m.geral, porNivel: m.porNivel, pendencias: m.pendencias };
+      const [m, plano] = await Promise.all([maturidadeDoSetor(s.id), carregarPlanoDoSetor(s.id)]);
+      return {
+        id: s.id, nome: s.nome, geral: m.geral, porNivel: m.porNivel, pendencias: m.pendencias,
+        acoesTotal: plano.resumo.total,
+        acoesConcluidas: plano.resumo.concluidas,
+        acoesAtrasadas: plano.resumo.atrasadas,
+        progressoPlano: plano.resumo.progresso,
+      };
     }),
   );
   linhas.sort((a, b) => b.geral - a.geral);
@@ -36,6 +50,8 @@ export async function carregarDashboard(): Promise<DadosDashboard> {
     }
   }
   const totalPendencias = linhas.reduce((a, l) => a + l.pendencias, 0);
+  const totalAcoesAtrasadas = linhas.reduce((a, l) => a + l.acoesAtrasadas, 0);
+  const totalAcoesAbertas = linhas.reduce((a, l) => a + (l.acoesTotal - l.acoesConcluidas), 0);
 
-  return { setores: linhas, mediaEmpresa, radarEmpresa, totalPendencias };
+  return { setores: linhas, mediaEmpresa, radarEmpresa, totalPendencias, totalAcoesAtrasadas, totalAcoesAbertas };
 }

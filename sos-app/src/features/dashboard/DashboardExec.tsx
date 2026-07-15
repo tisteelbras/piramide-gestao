@@ -110,6 +110,20 @@ export default function DashboardExec({
             <div style={{ fontSize: 52, fontWeight: 800, color: dados.totalPendencias > 0 ? "#d98a00" : "#33853a", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{dados.totalPendencias}</div>
             <p style={{ margin: "12px 0 0", fontSize: 12.5, color: "#8493a0" }}>Critérios ainda não respondidos em todas as áreas.</p>
           </Card>
+          <Card>
+            <Titulo>Plano de ação</Titulo>
+            <div style={{ display: "flex", gap: 24, alignItems: "baseline" }}>
+              <div>
+                <div style={{ fontSize: 52, fontWeight: 800, color: "#0068a9", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{dados.totalAcoesAbertas}</div>
+                <div style={{ fontSize: 11.5, color: "#8493a0", marginTop: 4 }}>ações abertas</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 34, fontWeight: 800, color: dados.totalAcoesAtrasadas > 0 ? "#c0392b" : "#33853a", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{dados.totalAcoesAtrasadas}</div>
+                <div style={{ fontSize: 11.5, color: "#8493a0", marginTop: 4 }}>atrasadas</div>
+              </div>
+            </div>
+            <p style={{ margin: "12px 0 0", fontSize: 12.5, color: "#8493a0" }}>O que o diagnóstico virou — e o que está atrasado.</p>
+          </Card>
         </div>
 
         {/* Governança: ciclos de avaliação + evolução histórica */}
