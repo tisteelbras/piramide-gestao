@@ -1,7 +1,9 @@
 // Tipos puros do N4 — seguros para o cliente.
 import type { DirecaoIndicador } from "@/domain/indicadores";
+import type { RetratoEvolucao } from "@/domain/evolucao";
 
 export type { DirecaoIndicador };
+export type { RetratoEvolucao };
 
 export type IndicadorItem = {
   id: string;
@@ -22,9 +24,15 @@ export type RecomendacaoItem = {
   detalhe: string | null;
   prioridade: number;
   impactoEsperado: string | null;
+  /** Frase "avisado há N ciclos" quando a recomendação persiste entre
+   *  fechamentos. null quando é nova ou não há ciclo anterior. */
+  persistencia: string | null;
 };
 
 export type ResultadosDoSetor = {
   indicadores: IndicadorItem[];
   recomendacoes: RecomendacaoItem[];
+  /** Comparação com o último ciclo fechado. null = nunca houve fechamento
+   *  (primeiro uso) — a UI mostra só o estado atual. */
+  evolucao: RetratoEvolucao | null;
 };

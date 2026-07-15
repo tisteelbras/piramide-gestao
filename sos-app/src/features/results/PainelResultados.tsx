@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addIndicador, removeIndicador, toggleAusenciaIndicador, salvarMedicaoIndicador, gerarDiagnostico } from "./actions";
 import { criarPlanoDaRecomendacao, criarIshikawaDaRecomendacao } from "@/features/ferramentas/actions";
+import { ROTULO_NIVEL, COR_SENTIDO, SETA_SENTIDO } from "@/domain/evolucao";
+import type { RetratoEvolucao } from "@/domain/evolucao";
 import type { ResultadosDoSetor, IndicadorItem, DirecaoIndicador } from "./tipos";
 
 const GREEN = "#47ad4b", BLUE = "#0068a9", BLUE_D = "#004e80", INK = "#0e1a24";
@@ -156,6 +158,9 @@ export default function PainelResultados({
         Preencha <b>meta</b> e <b>valor atual</b> para o KPI virar nota. Marque como <b>ausente</b> o indicador que a área precisa ter mas não mede — ele conta como 0 e o diagnóstico sugere a ação.
       </p>
 
+      {/* Evolução desde o último ciclo */}
+      {resultados.evolucao && <PainelEvolucao ev={resultados.evolucao} />}
+
       {/* Diagnóstico */}
       <div style={{ marginTop: 20, background: "#f4f8fb", borderRadius: 12, padding: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: resultados.recomendacoes.length ? 14 : 0, flexWrap: "wrap" }}>
@@ -174,9 +179,15 @@ export default function PainelResultados({
         <div style={{ display: "grid", gap: 8 }}>
           {resultados.recomendacoes.map((r) => (
             <div key={r.id} style={{ background: "#fff", border: "1px solid #e3ebf1", borderRadius: 10, padding: "10px 12px", borderLeft: `4px solid ${PRIO_COR[r.prioridade] ?? BLUE}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 10.5, fontWeight: 800, color: "#fff", background: PRIO_COR[r.prioridade] ?? BLUE, padding: "2px 7px", borderRadius: 999 }}>P{r.prioridade}</span>
                 <span style={{ fontWeight: 800, fontSize: 13.5, color: INK }}>{r.titulo}</span>
+                {r.persistencia && (
+                  <span title="Esta recomendação sobreviveu a fechamentos de ciclo anteriores"
+                    style={{ fontSize: 10.5, fontWeight: 700, color: "#c0392b", background: "#fdecea", border: "1px solid #f0c0bd", padding: "2px 7px", borderRadius: 999 }}>
+                    ⏳ {r.persistencia}
+                  </span>
+                )}
               </div>
               {r.detalhe && <p style={{ margin: "2px 0", fontSize: 12.5, color: "#5b6b78" }}>{r.detalhe}</p>}
               {r.impactoEsperado && <p style={{ margin: "2px 0 0", fontSize: 12, color: "#33853a", fontWeight: 600 }}>Impacto: {r.impactoEsperado}</p>}
@@ -194,6 +205,48 @@ export default function PainelResultados({
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Evolução desde o último ciclo fechado: o geral e cada nível com sua
+ *  seta e o delta em pontos. É o que dá senso de jornada ao diagnóstico —
+ *  "caiu de 72 para 58", não só "está em 58". */
+function PainelEvolucao({ ev }: { ev: RetratoEvolucao }) {
+  if (!ev.temAnterior) return null; // primeiro ciclo: nada a comparar ainda
+  const data = ev.dataAnterior ? new Date(ev.dataAnterior).toLocaleDateString("pt-BR") : "";
+  const cor = COR_SENTIDO[ev.geralSentido];
+  const sinal = (d: number) => (d > 0 ? `+${d}` : `${d}`);
+
+  return (
+    <div style={{ marginTop: 20, background: "#fff", border: "1px solid #e3ebf1", borderRadius: 12, padding: 16 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+        <span style={{ fontSize: 14, fontWeight: 800, color: INK }}>Evolução desde o último ciclo</span>
+        <span style={{ fontSize: 12, color: "#8493a0" }}>fechado em {data}</span>
+        <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 800, color: cor }}>
+          {SETA_SENTIDO[ev.geralSentido]} Geral {ev.geralAntes}% → {ev.geralAgora}%
+          {ev.geralSentido !== "estavel" && <span> ({sinal(ev.geralDelta)})</span>}
+        </span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
+        {ev.porNivel.map((n) => {
+          const c = COR_SENTIDO[n.sentido];
+          return (
+            <div key={n.nivel} style={{ border: "1px solid #eef3f7", borderRadius: 10, padding: "9px 11px", borderLeft: `4px solid ${c}` }}>
+              <div style={{ fontSize: 11.5, color: "#5b6b78", fontWeight: 600 }}>{ROTULO_NIVEL[n.nivel]}</div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 2 }}>
+                <span style={{ fontSize: 16, fontWeight: 800, color: INK, fontVariantNumeric: "tabular-nums" }}>{n.agora}%</span>
+                <span style={{ fontSize: 12.5, fontWeight: 800, color: c }}>
+                  {SETA_SENTIDO[n.sentido]}{n.sentido !== "estavel" ? ` ${sinal(n.delta)}` : ""}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p style={{ fontSize: 11.5, color: "#8493a0", margin: "10px 0 0" }}>
+        Compara o estado atual com a foto do último fechamento de ciclo (em Configurações). Verde subiu, vermelho caiu, cinza estável.
+      </p>
     </div>
   );
 }

@@ -129,14 +129,25 @@ export async function gerarDiagnostico(setorId: string) {
     colaboradoresBaixaMedia,
   };
 
-  // 2) Gera e regrava as recomendações (origem 'regra') deste setor.
+  // 2) Regrava as recomendações (origem 'regra') deste setor PRESERVANDO
+  //    a data das que reaparecem. O título é a identidade: uma recomendação
+  //    com o mesmo título que já existia mantém seu criadoEm — é assim que
+  //    o diagnóstico sabe "isto persiste há N ciclos" em vez de esquecer a
+  //    cada rodada (antes um delete+insert cego zerava a data toda vez).
   const geradas = gerarRecomendacoes(retrato);
+  const existentes = await db.query.recomendacao.findMany({
+    where: and(eq(recomendacao.setorId, setorId), eq(recomendacao.origem, "regra")),
+  });
+  const dataPorTitulo = new Map(existentes.map((e) => [e.titulo, e.criadoEm]));
+
   await db.delete(recomendacao).where(and(eq(recomendacao.setorId, setorId), eq(recomendacao.origem, "regra")));
   if (geradas.length > 0) {
     await db.insert(recomendacao).values(
       geradas.map((g) => ({
         empresaId: emp.id, setorId, titulo: g.titulo, detalhe: g.detalhe,
         prioridade: String(g.prioridade), impactoEsperado: g.impactoEsperado, origem: "regra" as const,
+        // Recomendação que reaparece herda a data de quando surgiu.
+        criadoEm: dataPorTitulo.get(g.titulo) ?? new Date(),
       })),
     );
   }
