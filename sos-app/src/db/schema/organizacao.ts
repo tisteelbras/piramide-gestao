@@ -41,6 +41,9 @@ export const usuario = pgTable("usuario", {
   email: text("email").notNull().unique(),
   senhaHash: text("senha_hash").notNull(),
   papel: papelUsuario("papel").notNull().default("lider"),
+  // Foto de perfil (nome do arquivo em uploads/, servido por /api/foto/[id]).
+  // null = usa o avatar de iniciais.
+  fotoArquivo: text("foto_arquivo"),
   // Se for líder, qual setor lidera (null p/ admin/direção).
   setorId: uuid("setor_id").references(() => setor.id, { onDelete: "set null" }),
   ativo: boolean("ativo").notNull().default(true),

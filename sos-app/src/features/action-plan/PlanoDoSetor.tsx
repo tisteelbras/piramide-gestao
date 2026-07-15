@@ -8,6 +8,7 @@ import {
 } from "@/features/ferramentas/actions";
 import { ROTULO_SITUACAO, COR_SITUACAO } from "@/domain/plano-acao";
 import { PROXIMO_STATUS, ROTULO_STATUS } from "@/features/ferramentas/tipos";
+import BotaoGerarDoc from "@/features/documentos/BotaoGerarDoc";
 import type { PlanoDoSetor as PlanoDTO, AcaoDoPlano } from "./tipos";
 
 const BLUE = "#0068a9", INK = "#0e1a24", GREEN = "#47ad4b";
@@ -36,7 +37,30 @@ export default function PlanoDoSetor({ setorId, setorNome, plano }: {
       <header style={{ maxWidth: 1080, margin: "0 auto 20px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <Link href={`/setor/${setorId}`} style={{ textDecoration: "none", color: "#5b6b78", fontWeight: 700, fontSize: 13, border: "1px solid #d9e2ea", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>‹ {setorNome}</Link>
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: INK }}>Plano de ação</h1>
-        <Link href={`/setor/${setorId}/avaliar`} style={{ marginLeft: "auto", textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: BLUE, padding: "9px 15px", borderRadius: 10 }}>⚡ Ver diagnóstico</Link>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <BotaoGerarDoc
+            montarDoc={() => ({
+              tipo: "Plano de ação",
+              titulo: setorNome,
+              setorId,
+              setorNome,
+              secoes: [
+                { tipo: "campos", titulo: "Resumo", campos: [
+                  { rotulo: "Total de ações", valor: String(plano.resumo.total) },
+                  { rotulo: "Concluídas", valor: String(plano.resumo.concluidas) },
+                  { rotulo: "Em andamento", valor: String(plano.resumo.emAndamento) },
+                  { rotulo: "Atrasadas", valor: String(plano.resumo.atrasadas) },
+                  { rotulo: "Progresso", valor: `${plano.resumo.progresso}%` },
+                ] },
+                { tipo: "tabela", titulo: "Ações", colunas: ["O quê", "Responsável", "Prazo", "Situação"],
+                  linhas: plano.acoes.map((a) => [
+                    a.oQue, a.quem ?? "—", a.prazo ?? "—", ROTULO_SITUACAO[a.situacao],
+                  ]) },
+              ],
+            })}
+          />
+          <Link href={`/setor/${setorId}/avaliar`} style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: BLUE, padding: "9px 15px", borderRadius: 10 }}>⚡ Ver diagnóstico</Link>
+        </div>
       </header>
 
       <div style={{ maxWidth: 1080, margin: "0 auto" }}>

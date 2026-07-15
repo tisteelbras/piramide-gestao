@@ -197,14 +197,28 @@ export const AJUDA_ETAPAS: AjudaEtapa[] = [
   // estão alinhados, então é resultado, não concepção. Virou um tipo de
   // processo (gestao_objetivos) — ver features/processes/tipos.ts.
   {
-    prefixo: "Diretrizes Operacionais",
-    titulo: "Diretrizes Operacionais",
-    perguntaChave: "Quais padrões seguimos?",
+    prefixo: "Indicadores de Desempenho",
+    titulo: "Indicadores de Desempenho",
+    perguntaChave: "Como medimos?",
     blocos: [
       {
         tipo: "paragrafo",
         texto:
-          "Os padrões que a área segue — qualidade, prazo, eficiência. São os critérios que definem o que é um trabalho bem feito aqui.",
+          "Os indicadores (KPIs) que dizem se a área está entregando o que deve — OTIF, conversão, retrabalho, prazo. Cada indicador cadastrado aqui vira um processo mensurável e alimenta automaticamente o Resultado de KPI na pirâmide.",
+      },
+      {
+        tipo: "lista",
+        titulo: "O que considerar",
+        itens: [
+          "Cada indicador com sua meta e valor atual",
+          "Sentido: quanto maior é melhor (OTIF) ou quanto menor (retrabalho)",
+          "Poucos indicadores que realmente importam, não uma lista enorme",
+        ],
+      },
+      {
+        tipo: "destaque",
+        texto:
+          "É aqui que se define COMO a área se mede. O que você cadastra nesta etapa aparece sozinho em Processos e em Resultados.",
       },
     ],
   },

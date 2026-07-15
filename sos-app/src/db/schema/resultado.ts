@@ -11,6 +11,7 @@ import { relations } from "drizzle-orm";
 import { pk, timestamps } from "./_shared";
 import { empresa, setor } from "./organizacao";
 import { nivelPiramide } from "./avaliacao";
+import { processo } from "./processos";
 
 /** Sentido do KPI: "maior" = quanto maior, melhor (OTIF, conversão);
  *  "menor" = quanto menor, melhor (retrabalho, atraso, custo). Define
@@ -30,6 +31,10 @@ export const indicador = pgTable("indicador", {
   meta: numeric("meta", { precision: 12, scale: 2 }),
   valorAtual: numeric("valor_atual", { precision: 12, scale: 2 }),
   direcao: direcaoIndicador("direcao").notNull().default("maior"),
+  // Processo 'kpi' criado automaticamente no N3 quando o indicador nasce na
+  // etapa Indicadores de Desempenho (Visão). Ligados: apagar o indicador
+  // apaga o processo. null nos indicadores antigos, criados antes disso.
+  processoId: uuid("processo_id").references(() => processo.id, { onDelete: "set null" }),
   // KPI marcado como ausente → cruzado com recursos sistêmicos p/ sugestão.
   // Ausente também entra na nota de Resultado de KPI como 0: um indicador
   // que a área sabe que precisa ter, mas não mede, é resultado não obtido.

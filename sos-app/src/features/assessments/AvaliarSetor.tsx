@@ -12,6 +12,7 @@ import { salvarResposta } from "./actions";
 import { salvarObservacaoEtapa, uploadAnexo, removeAnexo } from "./anexos-actions";
 import { ajudaDaEtapa, INTRO_VISAO } from "./ajuda-visao";
 import PopupAjuda from "./PopupAjuda";
+import BotaoGerarDoc from "@/features/documentos/BotaoGerarDoc";
 import { NIVEIS, type CriterioAvaliado, type Nivel } from "./tipos";
 
 const arred = (n: number) => Math.round(n);
@@ -222,7 +223,7 @@ export default function AvaliarSetor({
               </div>
               <div style={{ display: "grid", gap: 8 }}>
                 {itensVisao.map((c) => (
-                  <EtapaVisao key={c.id} etapa={c} avaliacaoId={avaliacaoId} setorId={setorId}
+                  <EtapaVisao key={c.id} etapa={c} avaliacaoId={avaliacaoId} setorId={setorId} setorNome={setorNome}
                     onToggle={() => salva(c.id, c.status === "revisada" ? { status: "nao_iniciada", nota: null } : { status: "revisada", nota: 100 })} />
                 ))}
               </div>
@@ -314,11 +315,13 @@ function EtapaVisao({
   etapa,
   avaliacaoId,
   setorId,
+  setorNome,
   onToggle,
 }: {
   etapa: CriterioAvaliado;
   avaliacaoId: string;
   setorId: string;
+  setorNome: string;
   onToggle: () => void;
 }) {
   // Etapas com ferramenta dedicada: estrutura → organograma; direcionamento
@@ -326,6 +329,7 @@ function EtapaVisao({
   // Controles, Sucessão).
   const ehEstrutura = etapa.titulo.startsWith("Estrutura Organizacional");
   const ehDirecionamento = etapa.titulo.startsWith("Direcionamento Estratégico");
+  const ehIndicadores = etapa.titulo.startsWith("Indicadores de Desempenho");
   const ehGovernanca = etapa.titulo.startsWith("Governança Operacional");
   const [aberta, setAberta] = useState(false);
   const [desc, setDesc] = useState(etapa.observacao ?? "");
@@ -400,6 +404,14 @@ function EtapaVisao({
               🎯 Objetivos estratégicos — cada objetivo com meta, prazo e status ›
             </Link>
           )}
+          {ehIndicadores && (
+            <Link
+              href={`/setor/${setorId}/indicadores`}
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
+            >
+              📊 Indicadores de desempenho — cada KPI vira processo e Resultado ›
+            </Link>
+          )}
           {ehGovernanca && (
             <>
               <Link
@@ -431,6 +443,29 @@ function EtapaVisao({
           <textarea value={desc} onChange={(e) => aoDigitar(e.target.value)} onBlur={salvarDesc} rows={2}
             placeholder="Descrição / contexto desta etapa (salva ao sair do campo)…"
             style={{ border: "1px solid #dce6ee", borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "#0e1a24", resize: "vertical", fontFamily: "inherit", background: "#fff" }} />
+
+          {/* Salvar em PDF rastreável (ISO 9001): gera o documento desta etapa
+              com código/autor/data, anexa aqui e permite baixar. */}
+          <div style={{ justifySelf: "start" }}>
+            <BotaoGerarDoc
+              rotulo="🖨️ Salvar em PDF (para reunião/ISO)"
+              montarDoc={() => ({
+                tipo: "Registro de Visão",
+                titulo: etapa.titulo.replace(/\s*\(.*\)$/, ""), // sem a pergunta entre parênteses
+                setorId,
+                setorNome,
+                anexarNaEtapaCriterioId: etapa.id,
+                secoes: [
+                  { tipo: "campos", campos: [
+                    { rotulo: "Etapa", valor: etapa.titulo },
+                    { rotulo: "Situação", valor: etapa.status === "revisada" ? "Revisado" : "Não revisado" },
+                  ] },
+                  { tipo: "paragrafo", titulo: "Descrição / contexto",
+                    texto: desc.trim() || "(sem descrição preenchida)" },
+                ],
+              })}
+            />
+          </div>
           {anexos.length > 0 && (
             <div style={{ display: "grid", gap: 4 }}>
               {anexos.map((a) => (

@@ -10,9 +10,8 @@ import PainelHoje from "./PainelHoje";
 import type { DadosDashboard } from "./queries";
 import { ROTULO_QUADRANTE, type Quadrante, type ResumoFerramentas } from "@/features/ferramentas/tipos";
 import { ROTULO_ESTADO, type GovernancaDTO } from "@/features/governanca/tipos";
-import Saudacao from "@/features/onboarding/Saudacao";
+import CartaoSaudacao from "./CartaoSaudacao";
 import TutorialPopup from "@/features/onboarding/TutorialPopup";
-import { RESUMO_CONCEITO, TAGLINE } from "@/features/onboarding/conteudo";
 
 // Cor sequencial de maturidade (claro→escuro no azul da marca).
 // O número aparece em toda célula, então a cor é reforço, não a única info.
@@ -33,6 +32,9 @@ type OrganogramaResumo = {
 
 export default function DashboardExec({
   usuarioNome,
+  usuarioId,
+  temFoto,
+  papel,
   dados,
   ferramentas,
   governanca,
@@ -40,6 +42,9 @@ export default function DashboardExec({
   inicio,
 }: {
   usuarioNome: string | null;
+  usuarioId?: string | null;
+  temFoto?: boolean;
+  papel?: string | null;
   dados: DadosDashboard;
   // Agregado do hub de ferramentas — opcional para não acoplar o dashboard.
   ferramentas?: ResumoFerramentas;
@@ -62,10 +67,15 @@ export default function DashboardExec({
 
       <header style={{ maxWidth: 1160, margin: "0 auto 24px", display: "flex", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 260 }}>
-          <Image src="/steelbras-logo.svg" alt="Steelbras" width={130} height={47} style={{ height: 34, width: "auto" }} priority />
-          {inicio && <div style={{ margin: "14px 0 2px" }}><Saudacao nome={usuarioNome} /></div>}
-          <h1 style={{ fontSize: inicio ? "clamp(17px,2.2vw,20px)" : "clamp(22px,3.4vw,32px)", fontWeight: 800, margin: inicio ? "6px 0 4px" : "12px 0 4px", color: inicio ? "#0068a9" : "#0e1a24" }}>NEXO · Dashboard executivo</h1>
-          {!inicio && <p style={{ margin: 0, color: "#5b6b78", fontSize: 15 }}>Visão consolidada da maturidade de gestão por área.</p>}
+          {inicio ? (
+            <CartaoSaudacao nome={usuarioNome} usuarioId={usuarioId ?? null} temFoto={!!temFoto} papel={papel ?? null} />
+          ) : (
+            <>
+              <Image src="/steelbras-logo.svg" alt="Steelbras" width={130} height={47} style={{ height: 34, width: "auto" }} priority />
+              <h1 style={{ fontSize: "clamp(22px,3.4vw,32px)", fontWeight: 800, margin: "12px 0 4px", color: "#0e1a24" }}>NEXO · Dashboard executivo</h1>
+              <p style={{ margin: 0, color: "#5b6b78", fontSize: 15 }}>Visão consolidada da maturidade de gestão por área.</p>
+            </>
+          )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <Link href="/relatorio-executivo" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#fff", background: "#47ad4b", padding: "9px 14px", borderRadius: 8, boxShadow: "0 4px 12px rgba(71,173,75,.3)" }}>⭳ Relatório executivo</Link>
@@ -99,17 +109,6 @@ export default function DashboardExec({
               acoesAtrasadas: s.acoesAtrasadas,
             }))}
           />
-        )}
-
-        {/* Resumo do conceito (tela inicial) */}
-        {inicio && (
-          <div style={{ display: "flex", alignItems: "center", gap: 14, background: "linear-gradient(90deg, #eaf2f8, #f2faf3)", border: "1px solid #d7e8f4", borderRadius: 14, padding: "14px 18px", flexWrap: "wrap" }}>
-            <span aria-hidden style={{ fontSize: 24 }}>🧭</span>
-            <p style={{ margin: 0, flex: 1, minWidth: 240, fontSize: 13.5, color: "#0e4a70", lineHeight: 1.55, fontWeight: 600 }}>
-              <b>{TAGLINE}</b> {RESUMO_CONCEITO}
-            </p>
-            <Link href="/sobre" style={{ fontSize: 12.5, fontWeight: 800, color: "#0068a9", textDecoration: "none", whiteSpace: "nowrap" }}>Conheça o NEXO ›</Link>
-          </div>
         )}
 
         {/* Linha 1: hero + radar + pendências */}

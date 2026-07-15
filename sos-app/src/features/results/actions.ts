@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
   indicador, recomendacao, sistema,
-  colaborador, avaliacaoColaborador, avaliacao,
+  colaborador, avaliacaoColaborador, avaliacao, processo,
 } from "@/db/schema";
 import { auth } from "@/auth";
 import { getEmpresa } from "@/features/assessments/queries";
@@ -23,19 +23,33 @@ async function guard() {
 const refresh = () => {
   revalidatePath("/setor/[id]", "page");
   revalidatePath("/setor/[id]/avaliar", "page");
+  revalidatePath("/setor/[id]/indicadores", "page");
 };
 
 // ————— Indicadores (KPIs) —————
+// Cada indicador criado na etapa "Indicadores de Desempenho" (Visão) também
+// cria um PROCESSO do tipo 'kpi' no N3, com o mesmo nome. Assim o indicador
+// aparece como processo mensurável em Processos e seu atingimento alimenta o
+// "Resultado de KPI" no N4 — os três níveis conectados por um único cadastro.
 export async function addIndicador(setorId: string, nome: string, ehAusencia = false) {
   const emp = await guard();
-  if (!nome.trim()) return { ok: false as const };
-  await db.insert(indicador).values({ empresaId: emp.id, setorId, nome: nome.trim(), ehAusencia });
+  const limpo = nome.trim();
+  if (!limpo) return { ok: false as const };
+  const [proc] = await db.insert(processo)
+    .values({ empresaId: emp.id, setorId, nome: limpo, tipo: "kpi" as const })
+    .returning();
+  await db.insert(indicador).values({ empresaId: emp.id, setorId, nome: limpo, ehAusencia, processoId: proc.id });
   refresh();
   return { ok: true as const };
 }
 export async function removeIndicador(id: string) {
   await guard();
+  // Apaga o processo 'kpi' vinculado junto com o indicador.
+  const ind = await db.query.indicador.findFirst({ where: eq(indicador.id, id) });
   await db.delete(indicador).where(eq(indicador.id, id));
+  if (ind?.processoId) {
+    await db.delete(processo).where(eq(processo.id, ind.processoId));
+  }
   refresh();
   return { ok: true as const };
 }

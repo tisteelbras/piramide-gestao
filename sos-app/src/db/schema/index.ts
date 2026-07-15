@@ -11,3 +11,4 @@ export * from "./governanca";
 export * from "./raci";
 export * from "./mapa-processo";
 export * from "./visao-ferramentas";
+export * from "./documentos";

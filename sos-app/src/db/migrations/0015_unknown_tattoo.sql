@@ -1,0 +1,2 @@
+ALTER TABLE "indicador" ADD COLUMN "processo_id" uuid;--> statement-breakpoint
+ALTER TABLE "indicador" ADD CONSTRAINT "indicador_processo_id_processo_id_fk" FOREIGN KEY ("processo_id") REFERENCES "public"."processo"("id") ON DELETE set null ON UPDATE no action;

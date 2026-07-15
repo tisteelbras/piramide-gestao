@@ -9,3 +9,11 @@ export async function tutorialPendente(userId: string | undefined): Promise<bool
   const u = await db.query.usuario.findFirst({ where: eq(usuario.id, userId) });
   return !!u && u.tutorialVistoEm == null;
 }
+
+/** Dados leves do perfil para a saudação (tem foto?). */
+export async function perfilBasico(userId: string | undefined): Promise<{ temFoto: boolean } | null> {
+  if (!userId) return null;
+  const u = await db.query.usuario.findFirst({ where: eq(usuario.id, userId) });
+  if (!u) return null;
+  return { temFoto: !!u.fotoArquivo };
+}

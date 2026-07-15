@@ -15,11 +15,12 @@ type Grupo =
 
 export const CRITERIOS_BASE: Array<{ nivel: Nivel; grupo: Grupo; titulo: string }> = [
   // ———— N1 · VISÃO (checklist de etapas) ————
-  { nivel: "visao", grupo: "geral", titulo: "Estrutura Organizacional (Quem faz o quê?)" },
+  // A ORDEM aqui é a ordem de apresentação na tela (campo `ordem` = índice).
   { nivel: "visao", grupo: "geral", titulo: "Identidade Organizacional (Quem somos?)" },
+  { nivel: "visao", grupo: "geral", titulo: "Estrutura Organizacional (Quem faz o quê?)" },
   { nivel: "visao", grupo: "geral", titulo: "Direcionamento Estratégico (Para onde vamos?)" },
+  { nivel: "visao", grupo: "geral", titulo: "Indicadores de Desempenho (Como medimos?)" },
   { nivel: "visao", grupo: "geral", titulo: "Governança Operacional (Como funcionamos?)" },
-  { nivel: "visao", grupo: "geral", titulo: "Diretrizes Operacionais (Quais padrões seguimos?)" },
   { nivel: "visao", grupo: "geral", titulo: "Gestão de Competências (Quem executa e como evolui?)" },
 
   // "Gestão por Objetivos (O que precisamos entregar?)" NÃO está aqui de

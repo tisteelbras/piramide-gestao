@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addControle, setSituacaoControle, removerControle } from "./actions";
 import { SITUACOES_CONTROLE, PROXIMA_SITUACAO, CONTROLES_SUGERIDOS } from "./tipos";
+import BotaoGerarDoc from "@/features/documentos/BotaoGerarDoc";
 import type { ControlesDoSetor } from "./tipos";
 
 const INK = "#0e1a24", GREEN = "#47ad4b";
@@ -30,6 +31,16 @@ export default function PainelControles({ setorId, setorNome, dados }: {
       <header style={{ maxWidth: 900, margin: "0 auto 20px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <Link href={`/setor/${setorId}/avaliar`} style={{ textDecoration: "none", color: "#5b6b78", fontWeight: 700, fontSize: 13, border: "1px solid #d9e2ea", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>‹ Voltar à avaliação</Link>
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: INK }}>Controles operacionais · {setorNome}</h1>
+        <div style={{ marginLeft: "auto" }}>
+          <BotaoGerarDoc montarDoc={() => ({
+            tipo: "Controles Operacionais", titulo: setorNome, setorId, setorNome,
+            secoes: [
+              { tipo: "campos", campos: [{ rotulo: "Cobertura", valor: `${dados.cobertura}%` }] },
+              { tipo: "tabela", titulo: "Controles", colunas: ["Controle", "Situação"],
+                linhas: dados.itens.map((c) => [c.nome, SITUACOES_CONTROLE.find((s) => s.id === c.situacao)?.label ?? c.situacao]) },
+            ],
+          })} />
+        </div>
       </header>
 
       <div style={{ maxWidth: 900, margin: "0 auto" }}>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addObjetivo, atualizarObjetivo, removerObjetivo } from "./actions";
 import { STATUS_OBJETIVO, PROXIMO_STATUS_OBJETIVO, objetivoCompleto } from "./tipos";
+import BotaoGerarDoc from "@/features/documentos/BotaoGerarDoc";
 import type { ObjetivosDoSetor, ObjetivoItem } from "./tipos";
 
 const BLUE = "#0068a9", INK = "#0e1a24", GREEN = "#47ad4b";
@@ -31,6 +32,16 @@ export default function PainelObjetivos({ setorId, setorNome, dados }: {
       <header style={{ maxWidth: 980, margin: "0 auto 20px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <Link href={`/setor/${setorId}/avaliar`} style={{ textDecoration: "none", color: "#5b6b78", fontWeight: 700, fontSize: 13, border: "1px solid #d9e2ea", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>‹ Voltar à avaliação</Link>
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: INK }}>Objetivos estratégicos · {setorNome}</h1>
+        <div style={{ marginLeft: "auto" }}>
+          <BotaoGerarDoc montarDoc={() => ({
+            tipo: "Objetivos Estratégicos", titulo: setorNome, setorId, setorNome,
+            secoes: [{ tipo: "tabela", titulo: "Objetivos", colunas: ["Objetivo", "Meta", "Prazo", "Status"],
+              linhas: dados.objetivos.map((o) => [
+                o.titulo, o.meta ?? "—", o.prazo ?? "—",
+                STATUS_OBJETIVO.find((s) => s.id === o.status)?.label ?? o.status,
+              ]) }],
+          })} />
+        </div>
       </header>
 
       <div style={{ maxWidth: 980, margin: "0 auto" }}>

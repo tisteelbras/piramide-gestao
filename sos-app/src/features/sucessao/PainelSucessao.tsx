@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addSucessao, setQuemDomina, removerSucessao } from "./actions";
 import { RISCOS_SUCESSAO } from "./tipos";
+import BotaoGerarDoc from "@/features/documentos/BotaoGerarDoc";
 import type { SucessaoDoSetor, SucessaoItem } from "./tipos";
 
 const INK = "#0e1a24", GREEN = "#47ad4b";
@@ -26,6 +27,13 @@ export default function PainelSucessao({ setorId, setorNome, dados }: {
       <header style={{ maxWidth: 940, margin: "0 auto 20px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <Link href={`/setor/${setorId}/avaliar`} style={{ textDecoration: "none", color: "#5b6b78", fontWeight: 700, fontSize: 13, border: "1px solid #d9e2ea", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>‹ Voltar à avaliação</Link>
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: INK }}>Sucessão e continuidade · {setorNome}</h1>
+        <div style={{ marginLeft: "auto" }}>
+          <BotaoGerarDoc montarDoc={() => ({
+            tipo: "Matriz de Sucessão", titulo: setorNome, setorId, setorNome,
+            secoes: [{ tipo: "tabela", titulo: "Atividades críticas", colunas: ["Atividade", "Quem domina", "Risco"],
+              linhas: dados.itens.map((s) => [s.atividade, s.quemDomina ?? "—", RISCOS_SUCESSAO.find((r) => r.id === s.risco)?.label ?? s.risco]) }],
+          })} />
+        </div>
       </header>
 
       <div style={{ maxWidth: 940, margin: "0 auto" }}>
