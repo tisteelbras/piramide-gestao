@@ -321,9 +321,11 @@ function EtapaVisao({
   setorId: string;
   onToggle: () => void;
 }) {
-  // Etapas com ferramenta dedicada: estrutura → organograma;
-  // governança → matriz de responsabilidade (pilar "Responsabilidades").
+  // Etapas com ferramenta dedicada: estrutura → organograma; direcionamento
+  // → objetivos estratégicos; governança → os 4 pilares (RACI, Mapa,
+  // Controles, Sucessão).
   const ehEstrutura = etapa.titulo.startsWith("Estrutura Organizacional");
+  const ehDirecionamento = etapa.titulo.startsWith("Direcionamento Estratégico");
   const ehGovernanca = etapa.titulo.startsWith("Governança Operacional");
   const [aberta, setAberta] = useState(false);
   const [desc, setDesc] = useState(etapa.observacao ?? "");
@@ -390,6 +392,14 @@ function EtapaVisao({
               🏛 Montar organograma — gera o PDF e anexa aqui automaticamente ›
             </Link>
           )}
+          {ehDirecionamento && (
+            <Link
+              href={`/setor/${setorId}/objetivos`}
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
+            >
+              🎯 Objetivos estratégicos — cada objetivo com meta, prazo e status ›
+            </Link>
+          )}
           {ehGovernanca && (
             <>
               <Link
@@ -403,6 +413,18 @@ function EtapaVisao({
                 style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
               >
                 ⇉ Pilar 2 · Padronização — Mapa de Processos: a forma oficial de executar o trabalho ›
+              </Link>
+              <Link
+                href={`/setor/${setorId}/controles`}
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
+              >
+                ☑ Pilar 3 · Controles operacionais — checklist do que acompanha a execução ›
+              </Link>
+              <Link
+                href={`/setor/${setorId}/sucessao`}
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
+              >
+                🔑 Pilar 4 · Sustentabilidade — matriz de sucessão: quem domina o quê (bus factor) ›
               </Link>
             </>
           )}
