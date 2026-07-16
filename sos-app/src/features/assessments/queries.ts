@@ -86,6 +86,8 @@ export async function carregarAvaliacaoDoSetor(setorId: string, autorId?: string
   return {
     setor: setorRow,
     avaliacaoId: aval.id,
+    // null = escolha de ferramentas ainda não feita (mostra tudo + convite).
+    ferramentasHabilitadas: (aval.ferramentasHabilitadas as string[] | null) ?? null,
     criterios: criterios.map((c) => ({
       id: c.id,
       nivel: c.nivel as Nivel,
@@ -95,6 +97,7 @@ export async function carregarAvaliacaoDoSetor(setorId: string, autorId?: string
       nota: respostas.get(c.id)?.nota != null ? Number(respostas.get(c.id)!.nota) : null,
       status: respostas.get(c.id)?.status ?? "nao_iniciada",
       observacao: respostas.get(c.id)?.observacao ?? null,
+      checks: respostas.get(c.id)?.checks ?? null,
       anexos: (anexosPorCriterio.get(c.id) ?? []).map((a) => ({
         id: a.id,
         nomeOriginal: a.nomeOriginal,

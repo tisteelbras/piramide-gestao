@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { objetivoEstrategico } from "@/db/schema";
 import { auth } from "@/auth";
 import { getEmpresa } from "@/features/assessments/queries";
-import type { StatusObjetivo } from "./tipos";
+import type { StatusObjetivo, PerspectivaBsc } from "./tipos";
 
 async function guard() {
   const s = await auth();
@@ -30,7 +30,7 @@ export async function addObjetivo(setorId: string, titulo: string) {
 export async function atualizarObjetivo(
   setorId: string,
   id: string,
-  campos: Partial<{ titulo: string; meta: string | null; prazo: string | null; status: StatusObjetivo }>,
+  campos: Partial<{ titulo: string; meta: string | null; prazo: string | null; status: StatusObjetivo; perspectiva: PerspectivaBsc | null }>,
 ) {
   await guard();
   const patch: Record<string, unknown> = { atualizadoEm: new Date() };
@@ -38,8 +38,11 @@ export async function atualizarObjetivo(
   if ("meta" in campos) patch.meta = campos.meta?.trim() || null;
   if ("prazo" in campos) patch.prazo = campos.prazo || null;
   if ("status" in campos && campos.status) patch.status = campos.status;
+  if ("perspectiva" in campos) patch.perspectiva = campos.perspectiva ?? null;
   await db.update(objetivoEstrategico).set(patch).where(eq(objetivoEstrategico.id, id));
   refresh(setorId);
+  // O mapa BSC mostra os mesmos objetivos — mantém em dia.
+  revalidatePath(`/setor/${setorId}/bsc`, "page");
   return { ok: true as const };
 }
 

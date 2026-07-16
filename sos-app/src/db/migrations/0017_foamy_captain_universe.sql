@@ -1,0 +1,1 @@
+ALTER TABLE "avaliacao" ADD COLUMN "ferramentas_habilitadas" jsonb;

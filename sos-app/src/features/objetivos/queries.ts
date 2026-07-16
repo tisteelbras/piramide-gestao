@@ -18,6 +18,7 @@ export async function carregarObjetivos(setorId: string): Promise<ObjetivosDoSet
     meta: o.meta,
     prazo: o.prazo,
     status: o.status,
+    perspectiva: o.perspectiva,
   }));
   return {
     objetivos,

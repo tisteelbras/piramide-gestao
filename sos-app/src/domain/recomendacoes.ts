@@ -30,6 +30,8 @@ export type RetratoSetor = {
   processosFracos: { nome: string; media: number }[];
   // Colaboradores com média baixa: nomes.
   colaboradoresBaixaMedia: string[];
+  // Check obrigatório da Estrutura Organizacional ainda não confirmado.
+  politicaComercialFaltante?: boolean;
 };
 
 const ROTULO_NIVEL: Record<Nivel, string> = {
@@ -41,6 +43,17 @@ const ROTULO_NIVEL: Record<Nivel, string> = {
 
 export function gerarRecomendacoes(r: RetratoSetor): RecomendacaoGerada[] {
   const recs: RecomendacaoGerada[] = [];
+
+  // Regra 0: Política Comercial é obrigatória — sem o check confirmado,
+  // vira a recomendação mais prioritária do setor.
+  if (r.politicaComercialFaltante) {
+    recs.push({
+      titulo: "Formalizar a Política Comercial",
+      detalhe: "A Política Comercial é obrigatória e ainda não foi confirmada na etapa Estrutura Organizacional. Sem ela, regras de preço, desconto e atendimento ficam no improviso.",
+      prioridade: 1,
+      impactoEsperado: "Padronização das decisões comerciais e conformidade da estrutura.",
+    });
+  }
 
   // Regra 1: sistema necessário ausente → implementar (alta prioridade).
   for (const s of r.sistemasFaltantes) {

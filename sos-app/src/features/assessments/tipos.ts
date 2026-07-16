@@ -13,6 +13,8 @@ export type CriterioAvaliado = {
   nota: number | null;
   status: StatusResposta;
   observacao: string | null;
+  // Checks nomeados da etapa (ex.: politica_comercial: true). null = nenhum.
+  checks: Record<string, boolean> | null;
   anexos: AnexoInfo[];
 };
 

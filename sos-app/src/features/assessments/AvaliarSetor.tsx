@@ -9,9 +9,11 @@ import { EIXOS_RH, type RecursosDoSetor } from "@/features/resources/tipos";
 import { TIPOS_PROCESSO, type ProcessoComEixos } from "@/features/processes/tipos";
 import type { ResultadosDoSetor } from "@/features/results/tipos";
 import { salvarResposta } from "./actions";
-import { salvarObservacaoEtapa, uploadAnexo, removeAnexo } from "./anexos-actions";
+import { salvarObservacaoEtapa, salvarCheckEtapa, uploadAnexo, removeAnexo } from "./anexos-actions";
 import { ajudaDaEtapa, INTRO_VISAO } from "./ajuda-visao";
 import PopupAjuda from "./PopupAjuda";
+import HabilitarFerramentas from "./HabilitarFerramentas";
+import { ferramentaAtiva, type FerramentaAnalise } from "@/domain/ferramentas-analise";
 import { NIVEIS, type CriterioAvaliado, type Nivel } from "./tipos";
 
 const arred = (n: number) => Math.round(n);
@@ -26,6 +28,7 @@ export default function AvaliarSetor({
   recursos,
   processos,
   resultados,
+  ferramentasHabilitadas = null,
 }: {
   setorId: string;
   setorNome: string;
@@ -34,6 +37,8 @@ export default function AvaliarSetor({
   recursos: RecursosDoSetor;
   processos: ProcessoComEixos[];
   resultados: ResultadosDoSetor;
+  // null = escolha de ferramentas ainda não feita (todas aparecem + convite).
+  ferramentasHabilitadas?: string[] | null;
 }) {
   const [criterios, setCriterios] = useState(criteriosIniciais);
   const [nivelAtivo, setNivelAtivo] = useState<Nivel>("visao");
@@ -191,6 +196,10 @@ export default function AvaliarSetor({
           {/* ——— N1 VISÃO ——— */}
           {nivelAtivo === "visao" && (
             <div>
+              {/* Habilitar ferramentas: completa vs parcial. Ferramenta
+                  desligada some das etapas abaixo. */}
+              <HabilitarFerramentas avaliacaoId={avaliacaoId} habilitadas={ferramentasHabilitadas} />
+
               {/* Princípio que orienta o nível — sempre visível. */}
               <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: "#eef4f9", borderLeft: "4px solid #0068a9", borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
                 <p style={{ margin: 0, flex: "1 1 320px", fontSize: 13, lineHeight: 1.55, color: "#0e1a24", fontWeight: 600 }}>
@@ -223,6 +232,7 @@ export default function AvaliarSetor({
               <div style={{ display: "grid", gap: 8 }}>
                 {itensVisao.map((c) => (
                   <EtapaVisao key={c.id} etapa={c} avaliacaoId={avaliacaoId} setorId={setorId}
+                    ferramentas={ferramentasHabilitadas}
                     onToggle={() => salva(c.id, c.status === "revisada" ? { status: "nao_iniciada", nota: null } : { status: "revisada", nota: 100 })} />
                 ))}
               </div>
@@ -314,22 +324,28 @@ function EtapaVisao({
   etapa,
   avaliacaoId,
   setorId,
+  ferramentas,
   onToggle,
 }: {
   etapa: CriterioAvaliado;
   avaliacaoId: string;
   setorId: string;
+  // Ferramentas habilitadas nesta análise (null = todas — escolha não feita).
+  ferramentas: string[] | null;
   onToggle: () => void;
 }) {
   // Etapas com ferramenta dedicada: estrutura → organograma; direcionamento
-  // → objetivos estratégicos; governança → os 4 pilares (RACI, Mapa,
-  // Controles, Sucessão).
+  // → objetivos/SWOT/BSC; governança → os 4 pilares (RACI, Mapa, Controles,
+  // Sucessão). Cada link só aparece se a ferramenta está habilitada na
+  // análise (o organograma é estrutural e não é desligável).
   const ehEstrutura = etapa.titulo.startsWith("Estrutura Organizacional");
   const ehDirecionamento = etapa.titulo.startsWith("Direcionamento Estratégico");
   const ehIndicadores = etapa.titulo.startsWith("Indicadores de Desempenho");
   const ehGovernanca = etapa.titulo.startsWith("Governança Operacional");
+  const ativa = (f: FerramentaAnalise) => ferramentaAtiva(ferramentas as FerramentaAnalise[] | null, f);
   const [aberta, setAberta] = useState(false);
   const [desc, setDesc] = useState(etapa.observacao ?? "");
+  const [checkPolitica, setCheckPolitica] = useState(etapa.checks?.politica_comercial === true);
   const [anexos, setAnexos] = useState(etapa.anexos);
   const [enviando, setEnviando] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -386,55 +402,60 @@ function EtapaVisao({
       {aberta && (
         <div style={{ padding: "0 15px 14px 51px", display: "grid", gap: 8 }}>
           {ehEstrutura && (
-            <Link
-              href={`/setor/${setorId}/organograma`}
-              style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
-            >
-              🏛 Montar organograma — gera o PDF e anexa aqui automaticamente ›
-            </Link>
+            <>
+              <LinkFerramenta href={`/setor/${setorId}/organograma`}>🏛 Montar organograma — gera o PDF e anexa aqui automaticamente ›</LinkFerramenta>
+              {/* Check obrigatório: a Política Comercial precisa existir. Não
+                  trava a revisão — mas desmarcado fica em destaque vermelho. */}
+              <label style={{ display: "flex", alignItems: "center", gap: 10, border: checkPolitica ? "1px solid #cfe0d0" : "1.5px solid #f0c0bd", background: checkPolitica ? "#f2faf3" : "#fdecea", borderRadius: 8, padding: "9px 12px", cursor: "pointer", justifySelf: "start" }}>
+                <input
+                  type="checkbox"
+                  checked={checkPolitica}
+                  onChange={(e) => {
+                    const v = e.target.checked;
+                    setCheckPolitica(v);
+                    start(async () => { await salvarCheckEtapa({ avaliacaoId, criterioId: etapa.id, check: "politica_comercial", valor: v }); });
+                  }}
+                  style={{ cursor: "pointer" }}
+                />
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: checkPolitica ? "#256a2b" : "#c0392b" }}>
+                  Possui Política Comercial{" "}
+                  <span style={{ fontWeight: 600, color: checkPolitica ? "#33853a" : "#c0392b" }}>
+                    {checkPolitica ? "· confirmada ✓" : "· obrigatória — confirme quando existir"}
+                  </span>
+                </span>
+              </label>
+            </>
           )}
           {ehDirecionamento && (
-            <Link
-              href={`/setor/${setorId}/objetivos`}
-              style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
-            >
-              🎯 Objetivos estratégicos — cada objetivo com meta, prazo e status ›
-            </Link>
+            <>
+              {ativa("objetivos") && (
+                <LinkFerramenta href={`/setor/${setorId}/objetivos`}>🎯 Objetivos estratégicos — cada objetivo com meta, prazo e status ›</LinkFerramenta>
+              )}
+              {ativa("swot") && (
+                <LinkFerramenta href={`/setor/${setorId}/swot`}>⚡ Análise SWOT — forças, fraquezas, oportunidades e ameaças ›</LinkFerramenta>
+              )}
+              {ativa("bsc") && (
+                <LinkFerramenta href={`/setor/${setorId}/bsc`}>🗺️ Mapa Estratégico (BSC) — os objetivos nas 4 perspectivas ›</LinkFerramenta>
+              )}
+            </>
           )}
-          {ehIndicadores && (
-            <Link
-              href={`/setor/${setorId}/indicadores`}
-              style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
-            >
-              📊 Indicadores de desempenho — cada KPI vira processo e Resultado ›
-            </Link>
+          {ehIndicadores && ativa("indicadores") && (
+            <LinkFerramenta href={`/setor/${setorId}/indicadores`}>📊 Indicadores de desempenho — cada KPI vira processo e Resultado ›</LinkFerramenta>
           )}
           {ehGovernanca && (
             <>
-              <Link
-                href={`/setor/${setorId}/raci`}
-                style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
-              >
-                ⊞ Pilar 1 · Responsabilidades — Matriz RACI: quem executa, aprova, é consultado e informado ›
-              </Link>
-              <Link
-                href={`/setor/${setorId}/mapa`}
-                style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
-              >
-                ⇉ Pilar 2 · Padronização — Mapa de Processos: a forma oficial de executar o trabalho ›
-              </Link>
-              <Link
-                href={`/setor/${setorId}/controles`}
-                style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
-              >
-                ☑ Pilar 3 · Controles operacionais — checklist do que acompanha a execução ›
-              </Link>
-              <Link
-                href={`/setor/${setorId}/sucessao`}
-                style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
-              >
-                🔑 Pilar 4 · Sustentabilidade — matriz de sucessão: quem domina o quê (bus factor) ›
-              </Link>
+              {ativa("raci") && (
+                <LinkFerramenta href={`/setor/${setorId}/raci`}>⊞ Pilar 1 · Responsabilidades — Matriz RACI: quem executa, aprova, é consultado e informado ›</LinkFerramenta>
+              )}
+              {ativa("mapa") && (
+                <LinkFerramenta href={`/setor/${setorId}/mapa`}>⇉ Pilar 2 · Padronização — Mapa de Processos: a forma oficial de executar o trabalho ›</LinkFerramenta>
+              )}
+              {ativa("controles") && (
+                <LinkFerramenta href={`/setor/${setorId}/controles`}>☑ Pilar 3 · Controles operacionais — checklist do que acompanha a execução ›</LinkFerramenta>
+              )}
+              {ativa("sucessao") && (
+                <LinkFerramenta href={`/setor/${setorId}/sucessao`}>🔑 Pilar 4 · Sustentabilidade — matriz de sucessão: quem domina o quê (bus factor) ›</LinkFerramenta>
+              )}
             </>
           )}
           <textarea value={desc} onChange={(e) => aoDigitar(e.target.value)} onBlur={salvarDesc} rows={2}
@@ -517,5 +538,17 @@ function AjudaEtapa({ titulo }: { titulo: string }) {
         />
       )}
     </>
+  );
+}
+
+/** Link de ferramenta atrelada a uma etapa da Visão — estilo padronizado. */
+function LinkFerramenta({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: "#eef4f9", border: "1px solid #cfe0ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0068a9", justifySelf: "start" }}
+    >
+      {children}
+    </Link>
   );
 }

@@ -11,7 +11,7 @@
 // com um `grupo` que diz a que sub-bloco pertencem. Isso evita uma
 // explosão de tabelas rígidas e deixa o modelo crescer.
 // ————————————————————————————————————————————————
-import { pgEnum, pgTable, text, uuid, integer, numeric } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, text, uuid, integer, numeric, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { pk, timestamps } from "./_shared";
 import { empresa, setor, usuario } from "./organizacao";
@@ -74,6 +74,11 @@ export const avaliacao = pgTable("avaliacao", {
     onDelete: "set null",
   }),
   titulo: text("titulo"),
+  // Ferramentas habilitadas nesta análise (ids do catálogo em
+  // domain/ferramentas-analise). null = escolha ainda não feita → todas
+  // aparecem (compatibilidade com avaliações antigas); [] = nenhuma;
+  // ["swot","raci",...] = análise parcial.
+  ferramentasHabilitadas: jsonb("ferramentas_habilitadas").$type<string[] | null>(),
   ...timestamps,
 });
 
@@ -90,6 +95,9 @@ export const resposta = pgTable("resposta", {
   nota: numeric("nota", { precision: 5, scale: 2 }),
   status: statusResposta("status").notNull().default("nao_iniciada"),
   observacao: text("observacao"),
+  // Checks nomeados da etapa (ex.: {"politica_comercial": true}) — itens
+  // obrigatórios que a etapa verifica. Extensível sem nova migração.
+  checks: jsonb("checks").$type<Record<string, boolean> | null>(),
   ...timestamps,
 });
 

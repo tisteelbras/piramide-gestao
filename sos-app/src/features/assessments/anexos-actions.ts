@@ -39,6 +39,30 @@ export async function salvarObservacaoEtapa(input: {
   return { ok: true as const };
 }
 
+/** Marca/desmarca um check nomeado da etapa (ex.: "politica_comercial").
+ *  Checks são itens obrigatórios que a etapa verifica — o desmarcado gera
+ *  aviso na tela e pendência no diagnóstico, mas não trava a revisão. */
+export async function salvarCheckEtapa(input: {
+  avaliacaoId: string;
+  criterioId: string;
+  check: string;
+  valor: boolean;
+}) {
+  await guard();
+  const { avaliacaoId, criterioId, check, valor } = input;
+  const existente = await db.query.resposta.findFirst({
+    where: and(eq(resposta.avaliacaoId, avaliacaoId), eq(resposta.criterioId, criterioId)),
+  });
+  if (existente) {
+    const checks = { ...(existente.checks ?? {}), [check]: valor };
+    await db.update(resposta).set({ checks, atualizadoEm: new Date() }).where(eq(resposta.id, existente.id));
+  } else {
+    await db.insert(resposta).values({ avaliacaoId, criterioId, checks: { [check]: valor }, status: "nao_iniciada" });
+  }
+  refresh();
+  return { ok: true as const };
+}
+
 /** Recebe um arquivo (FormData) e anexa a uma etapa. */
 export async function uploadAnexo(formData: FormData) {
   await guard();

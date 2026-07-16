@@ -24,6 +24,17 @@ export const statusObjetivo = pgEnum("status_objetivo", [
   "atingido",
 ]);
 
+/** Perspectiva do Balanced Scorecard. O Mapa Estratégico (BSC) é OUTRA
+ *  visão dos MESMOS objetivos estratégicos: cada objetivo pode ser
+ *  classificado numa perspectiva e aparece no mapa. null = ainda não
+ *  classificado (aparece como "a classificar" no mapa). */
+export const perspectivaBsc = pgEnum("perspectiva_bsc", [
+  "financeira",
+  "clientes",
+  "processos_internos",
+  "aprendizado",
+]);
+
 export const objetivoEstrategico = pgTable("objetivo_estrategico", {
   id: pk(),
   empresaId: uuid("empresa_id")
@@ -36,6 +47,29 @@ export const objetivoEstrategico = pgTable("objetivo_estrategico", {
   meta: text("meta"), // meta em texto ("+40%", "<5%", "1 filial")
   prazo: date("prazo"),
   status: statusObjetivo("status").notNull().default("a_definir"),
+  // Perspectiva do BSC — o mesmo objetivo aparece no Mapa Estratégico.
+  perspectiva: perspectivaBsc("perspectiva"),
+  ...timestamps,
+});
+
+// —————————————————— SWOT (Direcionamento Estratégico) ——————————————————
+export const quadranteSwot = pgEnum("quadrante_swot", [
+  "forca",
+  "fraqueza",
+  "oportunidade",
+  "ameaca",
+]);
+
+export const itemSwot = pgTable("item_swot", {
+  id: pk(),
+  empresaId: uuid("empresa_id")
+    .notNull()
+    .references(() => empresa.id, { onDelete: "cascade" }),
+  setorId: uuid("setor_id")
+    .notNull()
+    .references(() => setor.id, { onDelete: "cascade" }),
+  quadrante: quadranteSwot("quadrante").notNull(),
+  descricao: text("descricao").notNull(),
   ...timestamps,
 });
 
@@ -96,4 +130,9 @@ export const controleGovernancaRelations = relations(controleGovernanca, ({ one 
 export const sucessaoGovernancaRelations = relations(sucessaoGovernanca, ({ one }) => ({
   empresa: one(empresa, { fields: [sucessaoGovernanca.empresaId], references: [empresa.id] }),
   setor: one(setor, { fields: [sucessaoGovernanca.setorId], references: [setor.id] }),
+}));
+
+export const itemSwotRelations = relations(itemSwot, ({ one }) => ({
+  empresa: one(empresa, { fields: [itemSwot.empresaId], references: [empresa.id] }),
+  setor: one(setor, { fields: [itemSwot.setorId], references: [setor.id] }),
 }));

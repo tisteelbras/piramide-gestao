@@ -36,6 +36,7 @@ export default async function AvaliarPage({ params }: { params: Promise<{ id: st
       recursos={recursos}
       processos={processos}
       resultados={resultados}
+      ferramentasHabilitadas={dados.ferramentasHabilitadas}
     />
   );
 }

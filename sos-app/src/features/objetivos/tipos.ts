@@ -17,12 +17,24 @@ export const PROXIMO_STATUS_OBJETIVO: Record<StatusObjetivo, StatusObjetivo> = {
   atingido: "a_definir",
 };
 
+// Perspectiva do BSC — o Mapa Estratégico é outra visão dos mesmos objetivos.
+export type PerspectivaBsc = "financeira" | "clientes" | "processos_internos" | "aprendizado";
+
+export const PERSPECTIVAS_BSC: { id: PerspectivaBsc; nome: string; cor: string; pergunta: string }[] = [
+  { id: "financeira", nome: "Financeira", cor: "#33853a", pergunta: "Para ter sucesso financeiro, o que entregar?" },
+  { id: "clientes", nome: "Clientes", cor: "#0068a9", pergunta: "Para realizar a visão, como aparecer ao cliente?" },
+  { id: "processos_internos", nome: "Processos Internos", cor: "#d98a00", pergunta: "Em que processos precisamos ser excelentes?" },
+  { id: "aprendizado", nome: "Aprendizado e Crescimento", cor: "#6b3fa0", pergunta: "Como sustentar a capacidade de mudar e melhorar?" },
+];
+
 export type ObjetivoItem = {
   id: string;
   titulo: string;
   meta: string | null;
   prazo: string | null; // ISO "YYYY-MM-DD"
   status: StatusObjetivo;
+  // Perspectiva do BSC; null = ainda não classificado no mapa.
+  perspectiva: PerspectivaBsc | null;
 };
 
 export type ObjetivosDoSetor = {

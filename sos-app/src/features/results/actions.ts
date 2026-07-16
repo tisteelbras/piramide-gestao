@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
   indicador, recomendacao, sistema,
-  colaborador, avaliacaoColaborador, avaliacao, processo,
+  colaborador, avaliacaoColaborador, avaliacao, processo, resposta,
 } from "@/db/schema";
 import { auth } from "@/auth";
 import { getEmpresa } from "@/features/assessments/queries";
@@ -94,12 +94,17 @@ export async function gerarDiagnostico(setorId: string) {
     where: and(eq(avaliacao.setorId, setorId), eq(avaliacao.empresaId, emp.id)),
     orderBy: (a, { desc }) => [desc(a.criadoEm)],
   });
-  const [sistemas, colabs, notasColab, kpis] = await Promise.all([
+  const [sistemas, colabs, notasColab, kpis, respostas] = await Promise.all([
     db.query.sistema.findMany({ where: eq(sistema.setorId, setorId) }),
     db.query.colaborador.findMany({ where: eq(colaborador.setorId, setorId) }),
     aval ? db.query.avaliacaoColaborador.findMany({ where: eq(avaliacaoColaborador.avaliacaoId, aval.id) }) : Promise.resolve([]),
     db.query.indicador.findMany({ where: eq(indicador.setorId, setorId) }),
+    aval ? db.query.resposta.findMany({ where: eq(resposta.avaliacaoId, aval.id) }) : Promise.resolve([]),
   ]);
+
+  // Check obrigatório da Estrutura: Política Comercial confirmada em alguma
+  // resposta? (o check vive na resposta da etapa Estrutura Organizacional).
+  const politicaComercialFaltante = !respostas.some((r) => r.checks?.politica_comercial === true);
 
   // Colaboradores com média baixa (< 40).
   const notasPorColab = new Map<string, number[]>();
@@ -143,6 +148,7 @@ export async function gerarDiagnostico(setorId: string) {
       .filter((p): p is { nome: string; media: number } => p.media !== null && p.media < 40)
       .map((p) => ({ nome: p.nome, media: Math.round(p.media) })),
     colaboradoresBaixaMedia,
+    politicaComercialFaltante,
   };
 
   // 2) Regrava as recomendações POR ORIGEM, preservando a data das que
