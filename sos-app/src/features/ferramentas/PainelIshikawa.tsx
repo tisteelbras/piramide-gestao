@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { criarIshikawa, removerIshikawa, addCausaIshikawa, removerCausaIshikawa } from "./actions";
 import { CATEGORIAS_ISHIKAWA, type CategoriaIshikawa, type IshikawaComCausas, type SetorOpcao } from "./tipos";
+import BotaoGerarDoc from "@/features/documentos/BotaoGerarDoc";
 
 const GREEN = "#47ad4b", INK = "#0e1a24";
 const inputStyle: React.CSSProperties = { border: "1px solid #dce6ee", borderRadius: 8, padding: "7px 10px", fontSize: 13, color: INK, minWidth: 0 };
@@ -77,10 +78,31 @@ function CardIshikawa({ analise: i, run }: { analise: IshikawaComCausas; run: (f
             ))}
           </div>
 
-          <button onClick={() => { if (confirm(`Remover a análise "${i.problema}" e todas as causas?`)) run(() => removerIshikawa(i.id)); }}
-            style={{ marginTop: 12, border: "1px solid #f0d0cd", background: "#fff", color: "#c0392b", fontWeight: 700, fontSize: 12, padding: "6px 12px", borderRadius: 8, cursor: "pointer" }}>
-            Remover análise
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+            {/* PDF rastreável (ISO 9001): a espinha de peixe vira documento com
+                código/autor/data, registrado no Acervo. */}
+            <BotaoGerarDoc montarDoc={() => ({
+              tipo: "Análise Ishikawa",
+              titulo: i.problema,
+              setorId: i.setorId,
+              setorNome: i.setorNome,
+              secoes: [
+                { tipo: "campos", campos: [{ rotulo: "Efeito analisado", valor: i.problema }] },
+                ...CATEGORIAS_ISHIKAWA.map((cat) => ({
+                  tipo: "lista" as const,
+                  titulo: cat.label,
+                  itens: (() => {
+                    const doCat = i.causas.filter((c) => c.categoria === cat.id).map((c) => c.descricao);
+                    return doCat.length ? doCat : ["(nenhuma causa apontada)"];
+                  })(),
+                })),
+              ],
+            })} />
+            <button onClick={() => { if (confirm(`Remover a análise "${i.problema}" e todas as causas?`)) run(() => removerIshikawa(i.id)); }}
+              style={{ border: "1px solid #f0d0cd", background: "#fff", color: "#c0392b", fontWeight: 700, fontSize: 12, padding: "6px 12px", borderRadius: 8, cursor: "pointer" }}>
+              Remover análise
+            </button>
+          </div>
         </div>
       )}
     </div>

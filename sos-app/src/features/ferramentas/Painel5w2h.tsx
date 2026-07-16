@@ -6,6 +6,7 @@ import {
   addAcao5w2h, atualizarAcao5w2h, setStatusAcao5w2h, removerAcao5w2h,
 } from "./actions";
 import { PROXIMO_STATUS, ROTULO_STATUS, type Acao5w2hDTO, type PlanoComAcoes, type SetorOpcao } from "./tipos";
+import BotaoGerarDoc from "@/features/documentos/BotaoGerarDoc";
 
 const BLUE = "#0068a9", GREEN = "#47ad4b", GREEN_D = "#33853a", INK = "#0e1a24";
 const COR_STATUS: Record<string, { bg: string; fg: string; borda: string }> = {
@@ -100,10 +101,38 @@ function CardPlano({ plano: p, run }: { plano: PlanoComAcoes; run: (fn: () => Pr
               onKeyDown={(e) => { if (e.key === "Enter") adicionar(); }} style={{ ...inputStyle, flex: 1 }} />
             <button onClick={adicionar} style={{ border: "none", background: BLUE, color: "#fff", fontWeight: 700, fontSize: 12.5, padding: "8px 14px", borderRadius: 8, cursor: "pointer" }}>+ Ação</button>
           </div>
-          <button onClick={() => { if (confirm(`Remover o plano "${p.titulo}" e todas as suas ações?`)) run(() => removerPlano5w2h(p.id)); }}
-            style={{ justifySelf: "start", border: "1px solid #f0d0cd", background: "#fff", color: "#c0392b", fontWeight: 700, fontSize: 12, padding: "6px 12px", borderRadius: 8, cursor: "pointer" }}>
-            Remover plano
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {/* PDF rastreável (ISO 9001): o 5W2H vira documento com código,
+                autor e data — as 7 perguntas de cada ação em tabela. */}
+            <BotaoGerarDoc montarDoc={() => {
+              const complementos = p.acoes.flatMap((a) => {
+                const extras: { rotulo: string; valor: string }[] = [];
+                if (a.onde) extras.push({ rotulo: `${a.oQue} · Onde`, valor: a.onde });
+                if (a.quantoCusta) extras.push({ rotulo: `${a.oQue} · Quanto custa`, valor: a.quantoCusta });
+                return extras;
+              });
+              return {
+                tipo: "Plano 5W2H",
+                titulo: p.titulo,
+                setorId: p.setorId,
+                setorNome: p.setorNome,
+                secoes: [
+                  { tipo: "tabela" as const, titulo: "Ações",
+                    colunas: ["O quê", "Por quê", "Quem", "Quando", "Como", "Status"],
+                    linhas: p.acoes.map((a) => [
+                      a.oQue, a.porQue ?? "—", a.quem ?? "—", a.quando ?? "—", a.como ?? "—", ROTULO_STATUS[a.status],
+                    ]) },
+                  ...(complementos.length
+                    ? [{ tipo: "campos" as const, titulo: "Complementos (Onde / Quanto custa)", campos: complementos }]
+                    : []),
+                ],
+              };
+            }} />
+            <button onClick={() => { if (confirm(`Remover o plano "${p.titulo}" e todas as suas ações?`)) run(() => removerPlano5w2h(p.id)); }}
+              style={{ border: "1px solid #f0d0cd", background: "#fff", color: "#c0392b", fontWeight: 700, fontSize: 12, padding: "6px 12px", borderRadius: 8, cursor: "pointer" }}>
+              Remover plano
+            </button>
+          </div>
         </div>
       )}
     </div>
