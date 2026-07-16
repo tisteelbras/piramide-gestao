@@ -92,6 +92,7 @@ export default function DashboardExec({
             </>
           )}
           <Link href="/ferramentas" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>🧰 Ferramentas</Link>
+          <Link href="/acervo" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>🗄️ Acervo</Link>
           {papel === "admin" && (
             <Link href="/usuarios" style={{ textDecoration: "none", fontSize: 13, fontWeight: 700, color: "#0068a9", border: "1px solid #cfe0ee", background: "#fff", padding: "8px 12px", borderRadius: 8 }}>👥 Usuários</Link>
           )}

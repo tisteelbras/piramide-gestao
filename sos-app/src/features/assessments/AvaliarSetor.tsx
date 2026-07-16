@@ -12,7 +12,6 @@ import { salvarResposta } from "./actions";
 import { salvarObservacaoEtapa, uploadAnexo, removeAnexo } from "./anexos-actions";
 import { ajudaDaEtapa, INTRO_VISAO } from "./ajuda-visao";
 import PopupAjuda from "./PopupAjuda";
-import BotaoGerarDoc from "@/features/documentos/BotaoGerarDoc";
 import { NIVEIS, type CriterioAvaliado, type Nivel } from "./tipos";
 
 const arred = (n: number) => Math.round(n);
@@ -223,7 +222,7 @@ export default function AvaliarSetor({
               </div>
               <div style={{ display: "grid", gap: 8 }}>
                 {itensVisao.map((c) => (
-                  <EtapaVisao key={c.id} etapa={c} avaliacaoId={avaliacaoId} setorId={setorId} setorNome={setorNome}
+                  <EtapaVisao key={c.id} etapa={c} avaliacaoId={avaliacaoId} setorId={setorId}
                     onToggle={() => salva(c.id, c.status === "revisada" ? { status: "nao_iniciada", nota: null } : { status: "revisada", nota: 100 })} />
                 ))}
               </div>
@@ -315,13 +314,11 @@ function EtapaVisao({
   etapa,
   avaliacaoId,
   setorId,
-  setorNome,
   onToggle,
 }: {
   etapa: CriterioAvaliado;
   avaliacaoId: string;
   setorId: string;
-  setorNome: string;
   onToggle: () => void;
 }) {
   // Etapas com ferramenta dedicada: estrutura → organograma; direcionamento
@@ -444,28 +441,10 @@ function EtapaVisao({
             placeholder="Descrição / contexto desta etapa (salva ao sair do campo)…"
             style={{ border: "1px solid #dce6ee", borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "#0e1a24", resize: "vertical", fontFamily: "inherit", background: "#fff" }} />
 
-          {/* Salvar em PDF rastreável (ISO 9001): gera o documento desta etapa
-              com código/autor/data, anexa aqui e permite baixar. */}
-          <div style={{ justifySelf: "start" }}>
-            <BotaoGerarDoc
-              rotulo="🖨️ Salvar em PDF (para reunião/ISO)"
-              montarDoc={() => ({
-                tipo: "Registro de Visão",
-                titulo: etapa.titulo.replace(/\s*\(.*\)$/, ""), // sem a pergunta entre parênteses
-                setorId,
-                setorNome,
-                anexarNaEtapaCriterioId: etapa.id,
-                secoes: [
-                  { tipo: "campos", campos: [
-                    { rotulo: "Etapa", valor: etapa.titulo },
-                    { rotulo: "Situação", valor: etapa.status === "revisada" ? "Revisado" : "Não revisado" },
-                  ] },
-                  { tipo: "paragrafo", titulo: "Descrição / contexto",
-                    texto: desc.trim() || "(sem descrição preenchida)" },
-                ],
-              })}
-            />
-          </div>
+          {/* Sem botão de PDF aqui: os documentos das etapas da Visão (identidade,
+              missão/valores etc.) são padronizados FORA do programa por ora — o
+              gestor anexa o arquivo pronto. As ferramentas (plano de ação,
+              objetivos, controles, sucessão) continuam com o PDF rastreável. */}
           {anexos.length > 0 && (
             <div style={{ display: "grid", gap: 4 }}>
               {anexos.map((a) => (
