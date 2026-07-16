@@ -289,7 +289,14 @@ export default function AvaliarSetor({
                       </div>
                     ) : t.vemDeKpi ? (
                       <div style={{ marginTop: 6, fontSize: 12.5, color: "#a2afba" }}>
-                        Nenhum KPI com meta e valor atual ainda — cadastre e meça os indicadores logo abaixo.
+                        {resultados.indicadores.length === 0 ? (
+                          <>Nenhum indicador cadastrado ainda — crie-os na{" "}</>
+                        ) : (
+                          <>{resultados.indicadores.length} {resultados.indicadores.length === 1 ? "indicador cadastrado" : "indicadores cadastrados"}, mas sem meta e valor atual — meça-os na{" "}</>
+                        )}
+                        <Link href={`/setor/${setorId}/indicadores`} style={{ color: "#0068a9", fontWeight: 700, textDecoration: "underline" }}>
+                          etapa Indicadores de Desempenho
+                        </Link>{" "}da Visão.
                       </div>
                     ) : (
                       <div style={{ marginTop: 6, fontSize: 12.5, color: "#a2afba" }}>
