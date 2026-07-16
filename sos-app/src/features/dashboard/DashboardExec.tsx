@@ -124,8 +124,10 @@ export default function DashboardExec({
           />
         )}
 
-        {/* Linha 1: hero + radar + pendências */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr 1fr", gap: 16 }}>
+        {/* Linha 1: os 4 indicadores lado a lado. auto-fit com largura mínima
+            evita o buraco (4 cards não fechavam em 3 colunas) e quebra sozinho
+            em telas estreitas. */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 16 }}>
           <Card>
             <Titulo>{soSetor ? "Maturidade da área" : "Maturidade da empresa"}</Titulo>
             <div style={{ fontSize: 52, fontWeight: 800, color: "#0068a9", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{dados.mediaEmpresa}%</div>
