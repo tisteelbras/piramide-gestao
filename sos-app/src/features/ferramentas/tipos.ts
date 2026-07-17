@@ -58,12 +58,12 @@ export const FERRAMENTAS_DIAGNOSTICO = [
   },
   {
     id: "mapa",
-    nome: "Mapa de Processos",
-    pergunta: "Existe uma forma oficial de executar o trabalho?",
+    nome: "Fluxograma",
+    pergunta: "Existe uma forma oficial de executar cada processo?",
     descricao:
-      "Pilar 2 da Governança Operacional (Padronização). O fluxo passo a passo, com instrução, responsável e entrega.",
-    rota: (setorId: string) => `/setor/${setorId}/mapa`,
-    emoji: "⇉",
+      "O passo a passo de execução de cada processo, com instrução, responsável e entrega — o que o torna a forma oficial de trabalhar.",
+    rota: (setorId: string) => `/setor/${setorId}/fluxograma`,
+    emoji: "🔀",
   },
 ] as const;
 

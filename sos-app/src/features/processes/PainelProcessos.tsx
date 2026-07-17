@@ -66,7 +66,7 @@ export default function PainelProcessos({
                   ))}
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6, flexWrap: "wrap" }}>
                     <button onClick={() => run(() => removeProcesso(p.id))} style={{ border: "1px solid #f0d0cd", background: "#fff", color: "#c0392b", fontWeight: 700, fontSize: 12, padding: "6px 12px", borderRadius: 8, cursor: "pointer" }}>Remover processo</button>
-                    <Link href={`/setor/${setorId}/mapa`} style={{ textDecoration: "none", border: "1px solid #cfe0ee", background: "#eef4f9", color: BLUE, fontWeight: 700, fontSize: 12, padding: "6px 12px", borderRadius: 8 }}>⇉ Mapa deste processo</Link>
+                    <Link href={`/setor/${setorId}/fluxograma`} style={{ textDecoration: "none", border: "1px solid #cfe0ee", background: "#eef4f9", color: BLUE, fontWeight: 700, fontSize: 12, padding: "6px 12px", borderRadius: 8 }}>🔀 Passo a passo (Fluxograma)</Link>
                     <span style={{ fontSize: 11.5, color: "#8493a0" }}>Tipo: <b>{rotuloTipo(p.tipo)}</b></span>
                   </div>
                 </div>

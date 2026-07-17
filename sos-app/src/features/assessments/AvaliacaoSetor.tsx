@@ -141,15 +141,15 @@ export default function AvaliacaoSetor({
               }
             />
             <CartaoDiagnostico
-              href={`/setor/${setorId}/mapa`}
-              emoji="⇉"
-              nome="Mapa de Processos"
-              alimenta="Governança · pilar Padronização"
+              href={`/setor/${setorId}/fluxograma`}
+              emoji="🔀"
+              nome="Fluxograma"
+              alimenta="Processos · passo a passo documentado"
               ok={diagnostico.mapa.processos > 0 && diagnostico.mapa.padronizacao === 100}
               status={
                 !diagnostico.mapa.processos
                   ? "sem processos cadastrados"
-                  : `${diagnostico.mapa.padronizacao}% padronizado (${diagnostico.mapa.documentados}/${diagnostico.mapa.processos})`
+                  : `${diagnostico.mapa.padronizacao}% documentado (${diagnostico.mapa.documentados}/${diagnostico.mapa.processos})`
               }
             />
           </div>

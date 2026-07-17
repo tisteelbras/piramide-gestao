@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSetor } from "@/features/assessments/queries";
-import { fluxogramasDoSetor } from "@/features/fluxograma/queries";
-import PainelFluxograma from "@/features/fluxograma/PainelFluxograma";
+import { mapaDoSetor } from "@/features/mapa-processos/queries";
+import PainelMapa from "@/features/mapa-processos/PainelMapa";
 
-// Fluxograma do setor — liga os PROCESSOS do N3 em sequência. Vive junto do
-// Mapa de Processos (que detalha o passo a passo DENTRO de cada processo).
+// Fluxograma do setor — o passo a passo de execução de CADA processo (a
+// instrução de trabalho, quem executa e o que sai de cada etapa). É a terceira
+// camada do processo: Processos define a maturidade, o Mapa mostra a fase no
+// ciclo, e o Fluxograma detalha como o trabalho é feito.
 export default async function FluxogramaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const setor = await getSetor(id);
   if (!setor) notFound();
-  const { fluxogramas, processos } = await fluxogramasDoSetor(id);
+  const mapa = await mapaDoSetor(id);
 
   return (
     <div style={{ minHeight: "100vh", padding: "clamp(16px,4vw,44px)" }}>
@@ -24,7 +26,12 @@ export default async function FluxogramaPage({ params }: { params: Promise<{ id:
       </header>
 
       <div style={{ maxWidth: 980, margin: "0 auto", background: "#fff", borderRadius: 20, padding: "clamp(18px,3vw,26px)", boxShadow: "0 20px 50px rgba(14,26,36,.10)", borderTop: "6px solid #0068a9" }}>
-        <PainelFluxograma setorId={id} setorNome={setor.nome} fluxogramas={fluxogramas} processos={processos} />
+        <p style={{ margin: "0 0 18px", fontSize: 13.5, color: "#8493a0", lineHeight: 1.6 }}>
+          Como cada processo é <b>executado</b>, passo a passo: a instrução de trabalho, quem faz e o que sai de cada
+          etapa. Um processo é <b>documentado</b> quando toda etapa tem instrução e responsável — é o que o torna a
+          forma oficial de trabalhar, e não o jeito de cada um.
+        </p>
+        <PainelMapa setorId={id} setorNome={setor.nome} mapa={mapa} />
       </div>
     </div>
   );

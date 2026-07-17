@@ -12,7 +12,9 @@ async function guard() {
 }
 
 const refresh = (setorId: string) => {
-  revalidatePath(`/setor/${setorId}/mapa`, "page");
+  // O passo a passo vive na rota /fluxograma (a feature ainda se chama
+  // mapa-processos por herança). O Mapa de Processos é outra tela (fases).
+  revalidatePath(`/setor/${setorId}/fluxograma`, "page");
   revalidatePath("/setor/[id]", "page");
 };
 

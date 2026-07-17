@@ -15,12 +15,14 @@ import {
   type EtapaFluxo,
 } from "./tipos";
 
-// Mapa de Processos: para cada processo do setor, o fluxo oficial de
-// execução — o passo a passo, quem faz e o que sai dali.
+// Fluxograma: para cada processo do setor, o passo a passo de execução — a
+// instrução de trabalho, quem faz e o que sai de cada etapa.
 //
-// Resolve o pilar "Padronização" da Governança Operacional. Um processo só
-// conta como "documentado" quando toda etapa tem instrução E responsável:
-// é isso que o torna a forma OFICIAL de trabalhar, e não o jeito de cada um.
+// (No código a feature ainda se chama "mapa-processos" por herança; para o
+// usuário é o Fluxograma. O Mapa de Processos é OUTRA tela — a fase de cada
+// processo no ciclo.) Um processo só conta como "documentado" quando toda
+// etapa tem instrução E responsável: é isso que o torna a forma OFICIAL de
+// trabalhar, e não o jeito de cada um.
 export default function PainelMapa({
   setorId,
   setorNome,
@@ -36,7 +38,7 @@ export default function PainelMapa({
     return (
       <div style={{ display: "grid", gap: 12 }}>
         <p style={{ margin: 0, fontSize: 13.5, color: cor.muted, lineHeight: 1.6 }}>
-          O mapa detalha <b>como cada processo do setor é executado</b>. Cadastre os processos primeiro — depois volte aqui para desenhar o fluxo de cada um.
+          O fluxograma detalha <b>como cada processo do setor é executado</b>, passo a passo. Cadastre os processos primeiro — depois volte aqui para descrever o passo a passo de cada um.
         </p>
         <Link
           href={`/setor/${setorId}/avaliar#processos`}

@@ -155,6 +155,13 @@
       "when": 1784307655212,
       "tag": "0021_pale_mystique",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1784312460473,
+      "tag": "0022_tranquil_silver_samurai",
+      "breakpoints": true
     }
   ]
 }
