@@ -3,15 +3,16 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
+import { inArray } from "drizzle-orm";
 import {
   indicador, recomendacao, sistema,
   colaborador, avaliacaoColaborador, avaliacao, processo, resposta,
+  avaliacaoProcesso,
 } from "@/db/schema";
 import { auth } from "@/auth";
 import { getEmpresa } from "@/features/assessments/queries";
 import { maturidadeDoSetor } from "@/features/assessments/maturidade-setor";
 import { gerarRecomendacoes, type RetratoSetor, type RecomendacaoGerada } from "@/domain/recomendacoes";
-import { atingimentoKpi, type DirecaoIndicador } from "@/domain/indicadores";
 import { lerConfigIA } from "@/domain/ia/provedor";
 import { gerarRecomendacoesIA } from "@/domain/ia/recomendacoes-ia";
 
@@ -27,16 +28,17 @@ const refresh = () => {
 };
 
 // ————— Indicadores (KPIs) —————
-// Cada indicador criado na etapa "Indicadores de Desempenho" (Visão) também
-// cria um PROCESSO do tipo 'kpi' no N3, com o mesmo nome. Assim o indicador
-// aparece como processo mensurável em Processos e seu atingimento alimenta o
-// "Resultado de KPI" no N4 — os três níveis conectados por um único cadastro.
+// Cada indicador declarado na etapa "Indicadores de Desempenho" (Visão) cria
+// um PROCESSO do tipo 'kpi' no N3: "a execução que a área faz para atingir
+// aquele KPI". É esse processo que é medido (5 eixos) e forma o "Resultado de
+// KPI" no N4. O valor do KPI em si é medido fora do NEXO — aqui só existe o
+// indicador e o processo que persegue a meta.
 export async function addIndicador(setorId: string, nome: string, ehAusencia = false) {
   const emp = await guard();
   const limpo = nome.trim();
   if (!limpo) return { ok: false as const };
   const [proc] = await db.insert(processo)
-    .values({ empresaId: emp.id, setorId, nome: limpo, tipo: "kpi" as const })
+    .values({ empresaId: emp.id, setorId, nome: `Execução: ${limpo}`, tipo: "kpi" as const })
     .returning();
   await db.insert(indicador).values({ empresaId: emp.id, setorId, nome: limpo, ehAusencia, processoId: proc.id });
   refresh();
@@ -56,30 +58,6 @@ export async function removeIndicador(id: string) {
 export async function toggleAusenciaIndicador(id: string, ehAusencia: boolean) {
   await guard();
   await db.update(indicador).set({ ehAusencia, atualizadoEm: new Date() }).where(eq(indicador.id, id));
-  refresh();
-  return { ok: true as const };
-}
-
-/** Medição do KPI: meta, valor atual, unidade e direção. É daqui que sai a
- *  nota de "Resultado de KPI" no N4 — sem meta e valor, o KPI não mede nada.
- *  Campos vazios voltam a null (= não medido), nunca viram 0. */
-export async function salvarMedicaoIndicador(
-  id: string,
-  dados: {
-    meta?: number | null;
-    valorAtual?: number | null;
-    unidade?: string | null;
-    direcao?: DirecaoIndicador;
-  },
-) {
-  await guard();
-  const patch: Record<string, unknown> = { atualizadoEm: new Date() };
-  if ("meta" in dados) patch.meta = dados.meta == null ? null : String(dados.meta);
-  if ("valorAtual" in dados) patch.valorAtual = dados.valorAtual == null ? null : String(dados.valorAtual);
-  if ("unidade" in dados) patch.unidade = dados.unidade?.trim() || null;
-  if ("direcao" in dados && dados.direcao) patch.direcao = dados.direcao;
-
-  await db.update(indicador).set(patch).where(eq(indicador.id, id));
   refresh();
   return { ok: true as const };
 }
@@ -122,28 +100,38 @@ export async function gerarDiagnostico(setorId: string) {
     })
     .map((c) => c.nome);
 
-  // KPIs: ausente (nem se mede), sem medição (declarado mas vazio) e
-  // abaixo da meta (medido e doendo) são três problemas diferentes.
-  const kpisMedidos = kpis
-    .filter((k) => !k.ehAusencia)
-    .map((k) => ({
-      nome: k.nome,
-      atingimento: atingimentoKpi({
-        meta: k.meta == null ? null : Number(k.meta),
-        valorAtual: k.valorAtual == null ? null : Number(k.valorAtual),
-        direcao: k.direcao,
-        ehAusencia: false,
-      }),
-    }));
+  // KPIs declarados (não ausentes): cruzamos cada um com a maturidade do
+  // PROCESSO que o executa. Sem processo avaliado = não se sabe se a área
+  // faz o que leva ao indicador; processo fraco = a execução está doendo.
+  const kpisDeclarados = kpis.filter((k) => !k.ehAusencia && k.processoId);
+  const idsProcKpi = kpisDeclarados.map((k) => k.processoId!) as string[];
+  const notasProcKpi = idsProcKpi.length
+    ? await db.query.avaliacaoProcesso.findMany({ where: inArray(avaliacaoProcesso.processoId, idsProcKpi) })
+    : [];
+  const mediaProc = new Map<string, number>();
+  {
+    const acc = new Map<string, number[]>();
+    for (const n of notasProcKpi) {
+      if (n.nota == null) continue;
+      const arr = acc.get(n.processoId) ?? [];
+      arr.push(Number(n.nota));
+      acc.set(n.processoId, arr);
+    }
+    for (const [pid, arr] of acc) mediaProc.set(pid, arr.reduce((a, b) => a + b, 0) / arr.length);
+  }
+  const kpisComProc = kpisDeclarados.map((k) => ({
+    nome: k.nome,
+    media: mediaProc.has(k.processoId!) ? mediaProc.get(k.processoId!)! : null,
+  }));
 
   const retrato: RetratoSetor = {
     maturidadePorNivel: m.porNivel,
     sistemasFaltantes: sistemas.filter((s) => s.ehNecessidade).map((s) => s.nome),
     kpisAusentes: kpis.filter((k) => k.ehAusencia).map((k) => k.nome),
-    kpisSemMedicao: kpisMedidos.filter((k) => k.atingimento === null).map((k) => k.nome),
-    kpisAbaixoDaMeta: kpisMedidos
-      .filter((k): k is { nome: string; atingimento: number } => k.atingimento !== null && k.atingimento < 80)
-      .map((k) => ({ nome: k.nome, atingimento: Math.round(k.atingimento) })),
+    kpisSemProcessoAvaliado: kpisComProc.filter((k) => k.media === null).map((k) => k.nome),
+    kpisProcessoFraco: kpisComProc
+      .filter((k): k is { nome: string; media: number } => k.media !== null && k.media < 40)
+      .map((k) => ({ nome: k.nome, media: Math.round(k.media) })),
     processosFracos: m.detalhe.processos.porProcesso
       .filter((p): p is { nome: string; media: number } => p.media !== null && p.media < 40)
       .map((p) => ({ nome: p.nome, media: Math.round(p.media) })),

@@ -11,8 +11,10 @@
 //                TIPADOS (um tópico por tipo com resultado — a lista vive
 //                em features/processes/tipos.ts). Processos tipo "outro"
 //                contam só em PROCESSOS.
-//                Exceção: "Resultado de KPI" não vem de processo, e sim do
-//                ATINGIMENTO dos indicadores cadastrados (valor × meta).
+//                "Resultado de KPI" segue a MESMA regra: é a maturidade dos
+//                processos tipo "kpi" — os processos que a área executa para
+//                atingir cada indicador. O valor do KPI em si é medido fora
+//                do NEXO; aqui só medimos o processo que persegue a meta.
 //
 // Usado pela visualização do setor, hub, dashboard e relatório.
 // ————————————————————————————————————————————————
@@ -23,10 +25,9 @@ import { db } from "@/db";
 import {
   avaliacao, resposta, criterio,
   colaborador, avaliacaoColaborador, sistema, ativo,
-  processo, avaliacaoProcesso, indicador,
+  processo, avaliacaoProcesso,
 } from "@/db/schema";
 import { TIPOS_COM_RESULTADO } from "@/features/processes/tipos";
-import { notaResultadoKpi } from "@/domain/indicadores";
 import { getEmpresa } from "./queries";
 import type { Nivel, MaturidadeDTO } from "./tipos";
 
@@ -51,7 +52,7 @@ export const maturidadeDoSetor = cache(async (setorId: string): Promise<Maturida
   const procs = await db.query.processo.findMany({ where: eq(processo.setorId, setorId) });
   const idsProcsBanco = procs.map((p) => p.id);
 
-  const [criterios, respostas, colabs, notasColab, sistemas, ativos, notasProc, kpis] =
+  const [criterios, respostas, colabs, notasColab, sistemas, ativos, notasProc] =
     await Promise.all([
       db.query.criterio.findMany({ where: eq(criterio.empresaId, emp.id) }),
       aval ? db.query.resposta.findMany({ where: eq(resposta.avaliacaoId, aval.id) }) : Promise.resolve([]),
@@ -62,7 +63,6 @@ export const maturidadeDoSetor = cache(async (setorId: string): Promise<Maturida
       idsProcsBanco.length
         ? db.query.avaliacaoProcesso.findMany({ where: inArray(avaliacaoProcesso.processoId, idsProcsBanco) })
         : Promise.resolve([]),
-      db.query.indicador.findMany({ where: eq(indicador.setorId, setorId) }),
     ]);
   const mapaResp = new Map(respostas.map((r) => [r.criterioId, r]));
 
@@ -109,23 +109,11 @@ export const maturidadeDoSetor = cache(async (setorId: string): Promise<Maturida
   // ——— RESULTADOS: resultado de processo aplicado ———
   // Um tópico por tipo de processo que tem resultado (a lista é a fonte
   // única em features/processes/tipos.ts). Cada tópico mostra a média dos
-  // processos daquele tipo.
-  //
-  // "Resultado de KPI" é a exceção: não vem de processo, vem do
-  // ATINGIMENTO dos indicadores (valor × meta, respeitando a direção).
-  // É o que amarra o KPI ao nível — cadastrar indicador sem medir não
-  // produz resultado nenhum.
-  const notaKpi = notaResultadoKpi(
-    kpis.map((k) => ({
-      meta: k.meta == null ? null : Number(k.meta),
-      valorAtual: k.valorAtual == null ? null : Number(k.valorAtual),
-      direcao: k.direcao,
-      ehAusencia: k.ehAusencia,
-    })),
-  );
-
+  // processos daquele tipo — inclusive "Resultado de KPI", que é a
+  // maturidade dos processos que a área executa para atingir cada
+  // indicador. Cadastrar o KPI (na Visão) cria o processo; medir esse
+  // processo (5 eixos) é o que produz o resultado.
   const itensResultado = TIPOS_COM_RESULTADO.map((t) => {
-    if (t.id === "kpi") return { titulo: t.resultado, nota: notaKpi };
     // Processo tipado sem notas conta como 0 — existir sem ser executado
     // derruba o resultado e provoca o preenchimento. `nota` só fica null
     // quando não há nenhum processo do tipo.
@@ -144,21 +132,16 @@ export const maturidadeDoSetor = cache(async (setorId: string): Promise<Maturida
   };
   const geral = arred((pctVisao + pctTatico + pctProcessos + pctResultados) / 4);
 
-  // Pendências: o que ainda não foi tocado. KPI cadastrado sem meta ou sem
-  // valor atual é pendência — está declarado, mas ainda não mede nada.
-  // (KPI marcado como ausente NÃO é pendência: a ausência já é a resposta,
-  // e ela vira nota 0 no resultado.)
-  const kpisNaoMedidos = kpis.filter(
-    (k) => !k.ehAusencia && (k.meta == null || k.valorAtual == null),
-  ).length;
+  // Pendências: o que ainda não foi tocado. O processo de execução de cada
+  // KPI, quando ainda não avaliado nos 5 eixos, já entra na conta abaixo via
+  // `porProcesso` (média null) — não há contagem própria de KPI aqui.
   const pendencias =
     (itensVisao.length - itensVisao.filter((c) => mapaResp.has(c.id)).length) +
     colabs.filter((c) => !notasPorColab.has(c.id)).length +
     sistemas.filter((s) => !s.ehNecessidade && s.nota == null).length +
     ativos.filter((a) => a.nota == null).length +
     porProcesso.filter((p) => p.media === null).length +
-    itensResultado.filter((i) => i.nota === null).length +
-    kpisNaoMedidos;
+    itensResultado.filter((i) => i.nota === null).length;
 
   return {
     porNivel,

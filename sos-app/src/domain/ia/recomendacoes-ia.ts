@@ -31,10 +31,10 @@ export function montarContexto(r: RetratoSetor): string {
     if (itens.length) linhas.push(`${titulo}: ${itens.join("; ")}`);
   };
   bloco("SISTEMAS NECESSÁRIOS QUE FALTAM", r.sistemasFaltantes);
-  bloco("KPIs AUSENTES (nem são medidos)", r.kpisAusentes);
-  bloco("KPIs SEM MEDIÇÃO (declarados, sem meta/valor)", r.kpisSemMedicao);
-  if (r.kpisAbaixoDaMeta.length) {
-    bloco("KPIs LONGE DA META", r.kpisAbaixoDaMeta.map((k) => `${k.nome} (${k.atingimento}%)`));
+  bloco("KPIs AUSENTES (a área reconhece que precisa, mas não tem)", r.kpisAusentes);
+  bloco("KPIs SEM PROCESSO DE EXECUÇÃO AVALIADO", r.kpisSemProcessoAvaliado);
+  if (r.kpisProcessoFraco.length) {
+    bloco("KPIs COM EXECUÇÃO FRACA", r.kpisProcessoFraco.map((k) => `${k.nome} (processo em média ${k.media})`));
   }
   if (r.processosFracos.length) {
     bloco("PROCESSOS FRACOS", r.processosFracos.map((p) => `${p.nome} (média ${p.media})`));

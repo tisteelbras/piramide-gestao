@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { addProcesso, removeProcesso, setNotaEixoProcesso } from "./actions";
 import { EIXOS_PROCESSO, TIPOS_PROCESSO, type ProcessoComEixos, type TipoProcesso } from "./tipos";
@@ -39,6 +40,11 @@ export default function PainelProcessos({
               <button onClick={() => setAberto(isOpen ? null : p.id)}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: isOpen ? "#f4f8fb" : "#fff", border: "none", cursor: "pointer", textAlign: "left" }}>
                 <span style={{ fontWeight: 800, color: INK, fontSize: 14.5 }}>{p.nome}</span>
+                {p.tipo === "kpi" && (
+                  <span title="Processo que a área executa para atingir este KPI — medi-lo forma o Resultado de KPI." style={{ fontSize: 10.5, fontWeight: 800, color: "#7a4bd8", background: "#f2edfc", padding: "2px 8px", borderRadius: 999, whiteSpace: "nowrap" }}>
+                    📊 Execução de KPI
+                  </span>
+                )}
                 {p.tipo !== "outro" && (
                   <span style={{ fontSize: 10.5, fontWeight: 800, color: GREEN_D, background: "#eef7ef", padding: "2px 8px", borderRadius: 999, whiteSpace: "nowrap" }}>
                     → Resultado
@@ -58,8 +64,9 @@ export default function PainelProcessos({
                       <span style={{ width: 34, textAlign: "right", fontWeight: 800, color: BLUE, fontVariantNumeric: "tabular-nums", fontSize: 13 }}>{p.eixos[e.id] ?? 0}</span>
                     </div>
                   ))}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6, flexWrap: "wrap" }}>
                     <button onClick={() => run(() => removeProcesso(p.id))} style={{ border: "1px solid #f0d0cd", background: "#fff", color: "#c0392b", fontWeight: 700, fontSize: 12, padding: "6px 12px", borderRadius: 8, cursor: "pointer" }}>Remover processo</button>
+                    <Link href={`/setor/${setorId}/mapa`} style={{ textDecoration: "none", border: "1px solid #cfe0ee", background: "#eef4f9", color: BLUE, fontWeight: 700, fontSize: 12, padding: "6px 12px", borderRadius: 8 }}>⇉ Mapa / Fluxograma deste processo</Link>
                     <span style={{ fontSize: 11.5, color: "#8493a0" }}>Tipo: <b>{rotuloTipo(p.tipo)}</b></span>
                   </div>
                 </div>
@@ -72,9 +79,11 @@ export default function PainelProcessos({
         <input value={novo} placeholder="Nome do processo" onChange={(e) => setNovo(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") adicionar(); }}
           style={{ border: "1px solid #dce6ee", borderRadius: 8, padding: "7px 10px", fontSize: 13, color: INK, flex: 1, minWidth: 160 }} />
+        {/* O tipo "kpi" fica fora do seletor: um processo de execução de KPI
+            nasce ao declarar o indicador na etapa Indicadores da Visão. */}
         <select value={novoTipo} onChange={(e) => setNovoTipo(e.target.value as TipoProcesso)}
           style={{ border: "1px solid #dce6ee", borderRadius: 8, padding: "7px 10px", fontSize: 12.5, color: INK, background: "#fff", maxWidth: 230 }}>
-          {TIPOS_PROCESSO.map((t) => (
+          {TIPOS_PROCESSO.filter((t) => t.id !== "kpi").map((t) => (
             <option key={t.id} value={t.id}>{t.label}</option>
           ))}
         </select>

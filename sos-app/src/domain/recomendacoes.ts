@@ -20,12 +20,14 @@ export type RetratoSetor = {
   maturidadePorNivel: Record<Nivel, number>;
   // Sistemas marcados como necessidade (não existem, mas são precisos).
   sistemasFaltantes: string[];
-  // KPIs marcados como ausentes.
+  // KPIs marcados como ausentes (a área reconhece que precisa, mas não tem).
   kpisAusentes: string[];
-  // KPIs cadastrados sem meta ou sem valor atual — declarados, mas sem medição.
-  kpisSemMedicao: string[];
-  // KPIs medidos longe da meta: { nome, atingimento }.
-  kpisAbaixoDaMeta: { nome: string; atingimento: number }[];
+  // KPIs declarados cujo PROCESSO de execução ainda não foi avaliado
+  // (não se sabe se a área executa o que leva ao indicador).
+  kpisSemProcessoAvaliado: string[];
+  // KPIs declarados cujo processo de execução tem maturidade baixa:
+  // { nome, media } — a execução que persegue o indicador está fraca.
+  kpisProcessoFraco: { nome: string; media: number }[];
   // Processos com média baixa: { nome, media }.
   processosFracos: { nome: string; media: number }[];
   // Colaboradores com média baixa: nomes.
@@ -69,33 +71,35 @@ export function gerarRecomendacoes(r: RetratoSetor): RecomendacaoGerada[] {
   for (const k of r.kpisAusentes) {
     const temSistemaRelacionado = r.sistemasFaltantes.length > 0;
     recs.push({
-      titulo: `Definir e medir o indicador: ${k}`,
+      titulo: `Definir o indicador: ${k}`,
       detalhe: temSistemaRelacionado
         ? `O indicador "${k}" está ausente. Como há sistemas faltantes, provavelmente falta a fonte de dados — priorize a ferramenta que o alimenta.`
-        : `O indicador "${k}" está ausente. Defina meta, fonte e periodicidade de medição.`,
+        : `O indicador "${k}" está ausente. Defina o KPI, a fonte do dado e o processo que a área executa para atingi-lo.`,
       prioridade: 2,
       impactoEsperado: "Visibilidade de desempenho e decisão baseada em dados.",
     });
   }
 
-  // Regra 2b: KPI declarado mas sem medição (falta meta ou valor atual).
-  // Diferente do ausente: aqui a área SABE o que medir e ainda não mede.
-  for (const k of r.kpisSemMedicao) {
+  // Regra 2b: KPI declarado, mas o PROCESSO que o executa ainda não foi
+  // avaliado — não se sabe se a área faz o que leva ao indicador.
+  for (const k of r.kpisSemProcessoAvaliado) {
     recs.push({
-      titulo: `Medir o indicador: ${k}`,
-      detalhe: `O indicador "${k}" está cadastrado, mas sem meta ou sem valor atual — então ele não mede nada. Defina a meta, a fonte do dado e a periodicidade.`,
+      titulo: `Avaliar a execução do KPI: ${k}`,
+      detalhe: `O indicador "${k}" está declarado, mas o processo que a área executa para atingi-lo ainda não foi avaliado em Processos. Avalie os 5 eixos desse processo para que ele produza o Resultado de KPI.`,
       prioridade: 2,
-      impactoEsperado: "O indicador passa a gerar resultado e entra no nível Resultados.",
+      impactoEsperado: "O KPI passa a gerar resultado e entra no nível Resultados.",
     });
   }
 
-  // Regra 2c: KPI medido, mas longe da meta → é aqui que o resultado dói.
-  for (const k of r.kpisAbaixoDaMeta) {
+  // Regra 2c: KPI declarado, mas o processo de execução está fraco — é aqui
+  // que o resultado dói: a área tem o indicador, mas não executa bem o que
+  // leva até ele.
+  for (const k of r.kpisProcessoFraco) {
     recs.push({
-      titulo: `Recuperar o indicador: ${k.nome}`,
-      detalhe: `"${k.nome}" está em ${k.atingimento}% da meta. Investigue a causa raiz antes de mudar a meta — o número é sintoma, não doença.`,
-      prioridade: k.atingimento < 50 ? 1 : 2,
-      impactoEsperado: "Resultado de KPI mais alto e meta ao alcance.",
+      titulo: `Fortalecer a execução do KPI: ${k.nome}`,
+      detalhe: `O processo que persegue o indicador "${k.nome}" está com maturidade ${k.media}. Padronize, planeje e monitore essa execução — o número do KPI só melhora quando o processo que leva a ele melhora.`,
+      prioridade: k.media < 25 ? 1 : 2,
+      impactoEsperado: "Resultado de KPI mais alto por trás de uma execução consistente.",
     });
   }
 

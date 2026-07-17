@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import PainelRecursos from "@/features/resources/PainelRecursos";
 import PainelProcessos from "@/features/processes/PainelProcessos";
@@ -8,11 +9,10 @@ import PainelResultados from "@/features/results/PainelResultados";
 import { EIXOS_RH, type RecursosDoSetor } from "@/features/resources/tipos";
 import { TIPOS_PROCESSO, type ProcessoComEixos } from "@/features/processes/tipos";
 import type { ResultadosDoSetor } from "@/features/results/tipos";
-import { salvarResposta } from "./actions";
+import { salvarResposta, toggleFerramentaAnalise } from "./actions";
 import { salvarObservacaoEtapa, salvarCheckEtapa, uploadAnexo, removeAnexo } from "./anexos-actions";
 import { ajudaDaEtapa, INTRO_VISAO } from "./ajuda-visao";
 import PopupAjuda from "./PopupAjuda";
-import HabilitarFerramentas from "./HabilitarFerramentas";
 import { ferramentaAtiva, type FerramentaAnalise } from "@/domain/ferramentas-analise";
 import { NIVEIS, type CriterioAvaliado, type Nivel } from "./tipos";
 
@@ -66,26 +66,12 @@ export default function AvaliarSetor({
 
   const itensVisao = criterios.filter((c) => c.nivel === "visao");
 
-  // Tópicos de RESULTADO calculados dos processos tipados.
-  // Exceção: "Resultado de KPI" vem do ATINGIMENTO dos indicadores
-  // (valor × meta), não de processos — mesma regra do servidor
-  // (domain/indicadores.ts), para a tela não divergir do banco.
+  // Tópicos de RESULTADO calculados dos processos tipados — inclusive
+  // "Resultado de KPI", que é a maturidade dos processos que a área executa
+  // para atingir cada indicador (o valor do KPI em si é medido fora do NEXO).
   const topicosResultado = useMemo(
     () =>
       TIPOS_PROCESSO.filter((t) => t.resultado).map((t) => {
-        if (t.id === "kpi") {
-          const medidos = resultados.indicadores
-            .map((i) => ({ nome: i.nome, media: i.atingimento }))
-            .filter((i): i is { nome: string; media: number } => i.media !== null);
-          return {
-            tipo: t.id,
-            titulo: t.resultado!,
-            origem: t.label,
-            vemDeKpi: true as const,
-            media: media(medidos.map((i) => i.media)),
-            processos: medidos,
-          };
-        }
         // Processo tipado sem notas conta como 0 — existir sem ser
         // executado derruba o resultado e provoca o preenchimento.
         const doTipo = processos.filter((p) => p.tipo === t.id);
@@ -93,12 +79,12 @@ export default function AvaliarSetor({
           tipo: t.id,
           titulo: t.resultado!,
           origem: t.label,
-          vemDeKpi: false as const,
+          ehKpi: t.id === "kpi",
           media: media(doTipo.map((p) => p.media ?? 0)),
           processos: doTipo.map((p) => ({ nome: p.nome, media: p.media ?? 0 })),
         };
       }),
-    [processos, resultados.indicadores],
+    [processos],
   );
 
   // % ao vivo de cada nível (modelo NEXO)
@@ -196,9 +182,8 @@ export default function AvaliarSetor({
           {/* ——— N1 VISÃO ——— */}
           {nivelAtivo === "visao" && (
             <div>
-              {/* Habilitar ferramentas: completa vs parcial. Ferramenta
-                  desligada some das etapas abaixo. */}
-              <HabilitarFerramentas avaliacaoId={avaliacaoId} habilitadas={ferramentasHabilitadas} />
+              {/* As ferramentas de cada etapa ligam/desligam no próprio card
+                  da etapa (botão 📎), decididas pelo gestor caso a caso. */}
 
               {/* Princípio que orienta o nível — sempre visível. */}
               <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: "#eef4f9", borderLeft: "4px solid #0068a9", borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
@@ -261,9 +246,15 @@ export default function AvaliarSetor({
           {/* ——— N3 PROCESSOS ——— */}
           {nivelAtivo === "processos" && (
             <div>
-              <p style={{ margin: "0 0 4px", fontSize: 13.5, color: "#8493a0" }}>
+              <p style={{ margin: "0 0 10px", fontSize: 13.5, color: "#8493a0" }}>
                 Cadastre cada processo da operação. Processos tipados — <b>Avaliação de desempenho, Governança, Monitoramento, Disciplina Operacional</b> e <b>Gestão por Objetivos</b> — alimentam automaticamente o nível Resultado.
               </p>
+              {/* Mapa de Processos / Fluxograma: a forma oficial de executar
+                  cada processo. Saiu da Governança (Visão) e passou a viver
+                  aqui, junto dos processos que ele detalha. */}
+              <div style={{ marginBottom: 14 }}>
+                <LinkFerramenta href={`/setor/${setorId}/mapa`}>⇉ Mapa de Processos / Fluxograma — o passo a passo oficial de cada processo, em lista ou fluxograma ›</LinkFerramenta>
+              </div>
               <PainelProcessos setorId={setorId} processos={processos} />
             </div>
           )}
@@ -287,16 +278,12 @@ export default function AvaliarSetor({
                       <div style={{ marginTop: 6, fontSize: 12.5, color: "#5b6b78" }}>
                         {t.processos.map((p) => `${p.nome} (${arred(p.media)}%)`).join(" · ")}
                       </div>
-                    ) : t.vemDeKpi ? (
+                    ) : t.ehKpi ? (
                       <div style={{ marginTop: 6, fontSize: 12.5, color: "#a2afba" }}>
-                        {resultados.indicadores.length === 0 ? (
-                          <>Nenhum indicador cadastrado ainda — crie-os na{" "}</>
-                        ) : (
-                          <>{resultados.indicadores.length} {resultados.indicadores.length === 1 ? "indicador cadastrado" : "indicadores cadastrados"}, mas sem meta e valor atual — meça-os na{" "}</>
-                        )}
+                        Nenhum KPI ainda — declare-os na{" "}
                         <Link href={`/setor/${setorId}/indicadores`} style={{ color: "#0068a9", fontWeight: 700, textDecoration: "underline" }}>
                           etapa Indicadores de Desempenho
-                        </Link>{" "}da Visão.
+                        </Link>{" "}da Visão. Cada KPI vira um processo aqui em <b>Processos</b>, e é a execução desse processo que é medida.
                       </div>
                     ) : (
                       <div style={{ marginTop: 6, fontSize: 12.5, color: "#a2afba" }}>
@@ -342,9 +329,10 @@ function EtapaVisao({
   onToggle: () => void;
 }) {
   // Etapas com ferramenta dedicada: estrutura → organograma; direcionamento
-  // → objetivos/SWOT/BSC; governança → os 4 pilares (RACI, Mapa, Controles,
-  // Sucessão). Cada link só aparece se a ferramenta está habilitada na
-  // análise (o organograma é estrutural e não é desligável).
+  // → objetivos/BSC/SWOT; indicadores → KPIs; governança → 3 pilares (RACI,
+  // Controles, Sucessão). Cada ferramenta tem um interruptor no card: o
+  // gestor liga/desliga caso a caso (o organograma é estrutural, não
+  // desligável; o Mapa de Processos vive no N3, não aqui).
   const ehEstrutura = etapa.titulo.startsWith("Estrutura Organizacional");
   const ehDirecionamento = etapa.titulo.startsWith("Direcionamento Estratégico");
   const ehIndicadores = etapa.titulo.startsWith("Indicadores de Desempenho");
@@ -435,34 +423,19 @@ function EtapaVisao({
           )}
           {ehDirecionamento && (
             <>
-              {ativa("objetivos") && (
-                <LinkFerramenta href={`/setor/${setorId}/objetivos`}>🎯 Objetivos estratégicos — cada objetivo com meta, prazo e status ›</LinkFerramenta>
-              )}
-              {ativa("swot") && (
-                <LinkFerramenta href={`/setor/${setorId}/swot`}>⚡ Análise SWOT — forças, fraquezas, oportunidades e ameaças ›</LinkFerramenta>
-              )}
-              {ativa("bsc") && (
-                <LinkFerramenta href={`/setor/${setorId}/bsc`}>🗺️ Mapa Estratégico (BSC) — os objetivos nas 4 perspectivas ›</LinkFerramenta>
-              )}
+              <FerramentaComToggle avaliacaoId={avaliacaoId} ferramenta="objetivos" ativa={ativa("objetivos")} href={`/setor/${setorId}/objetivos`}>🎯 Objetivos estratégicos — cada objetivo com meta, prazo e status ›</FerramentaComToggle>
+              <FerramentaComToggle avaliacaoId={avaliacaoId} ferramenta="bsc" ativa={ativa("bsc")} href={`/setor/${setorId}/bsc`}>🗺️ Mapa Estratégico (BSC) — os objetivos nas 4 perspectivas ›</FerramentaComToggle>
+              <FerramentaComToggle avaliacaoId={avaliacaoId} ferramenta="swot" ativa={ativa("swot")} href={`/setor/${setorId}/swot`}>⚡ Análise SWOT — forças, fraquezas, oportunidades e ameaças ›</FerramentaComToggle>
             </>
           )}
-          {ehIndicadores && ativa("indicadores") && (
-            <LinkFerramenta href={`/setor/${setorId}/indicadores`}>📊 Indicadores de desempenho — cada KPI vira processo e Resultado ›</LinkFerramenta>
+          {ehIndicadores && (
+            <FerramentaComToggle avaliacaoId={avaliacaoId} ferramenta="indicadores" ativa={ativa("indicadores")} href={`/setor/${setorId}/indicadores`}>📊 Indicadores de desempenho — cada KPI vira processo e Resultado ›</FerramentaComToggle>
           )}
           {ehGovernanca && (
             <>
-              {ativa("raci") && (
-                <LinkFerramenta href={`/setor/${setorId}/raci`}>⊞ Pilar 1 · Responsabilidades — Matriz RACI: quem executa, aprova, é consultado e informado ›</LinkFerramenta>
-              )}
-              {ativa("mapa") && (
-                <LinkFerramenta href={`/setor/${setorId}/mapa`}>⇉ Pilar 2 · Padronização — Mapa de Processos: a forma oficial de executar o trabalho ›</LinkFerramenta>
-              )}
-              {ativa("controles") && (
-                <LinkFerramenta href={`/setor/${setorId}/controles`}>☑ Pilar 3 · Controles operacionais — checklist do que acompanha a execução ›</LinkFerramenta>
-              )}
-              {ativa("sucessao") && (
-                <LinkFerramenta href={`/setor/${setorId}/sucessao`}>🔑 Pilar 4 · Sustentabilidade — matriz de sucessão: quem domina o quê (bus factor) ›</LinkFerramenta>
-              )}
+              <FerramentaComToggle avaliacaoId={avaliacaoId} ferramenta="raci" ativa={ativa("raci")} href={`/setor/${setorId}/raci`}>⊞ Pilar 1 · Responsabilidades — Matriz RACI: quem executa, aprova, é consultado e informado ›</FerramentaComToggle>
+              <FerramentaComToggle avaliacaoId={avaliacaoId} ferramenta="controles" ativa={ativa("controles")} href={`/setor/${setorId}/controles`}>☑ Pilar 2 · Controles operacionais — checklist do que acompanha a execução ›</FerramentaComToggle>
+              <FerramentaComToggle avaliacaoId={avaliacaoId} ferramenta="sucessao" ativa={ativa("sucessao")} href={`/setor/${setorId}/sucessao`}>🔑 Pilar 3 · Sustentabilidade — matriz de sucessão: quem domina o quê (bus factor) ›</FerramentaComToggle>
             </>
           )}
           <textarea value={desc} onChange={(e) => aoDigitar(e.target.value)} onBlur={salvarDesc} rows={2}
@@ -557,5 +530,68 @@ function LinkFerramenta({ href, children }: { href: string; children: React.Reac
     >
       {children}
     </Link>
+  );
+}
+
+/**
+ * Ferramenta de uma etapa da Visão COM o interruptor de habilitar/desabilitar.
+ * O gestor responsável liga/desliga direto aqui. Desligada, a ferramenta
+ * continua visível (apagada, sem link ativo) para poder ser religada.
+ */
+function FerramentaComToggle({
+  avaliacaoId,
+  ferramenta,
+  ativa,
+  href,
+  children,
+}: {
+  avaliacaoId: string;
+  ferramenta: FerramentaAnalise;
+  ativa: boolean;
+  href: string;
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+  const [, start] = useTransition();
+  const [ligada, setLigada] = useState(ativa);
+  const [salvando, setSalvando] = useState(false);
+
+  const alternar = () => {
+    const novo = !ligada;
+    setLigada(novo);
+    setSalvando(true);
+    start(async () => {
+      await toggleFerramentaAnalise(avaliacaoId, ferramenta, novo);
+      setSalvando(false);
+      router.refresh();
+    });
+  };
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, opacity: ligada ? 1 : 0.55 }}>
+      {/* Interruptor */}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={ligada}
+        aria-label={ligada ? "Desabilitar esta ferramenta" : "Habilitar esta ferramenta"}
+        onClick={alternar}
+        disabled={salvando}
+        title={ligada ? "Ferramenta habilitada — clique para desabilitar" : "Ferramenta desabilitada — clique para habilitar"}
+        style={{ flexShrink: 0, width: 38, height: 22, borderRadius: 999, border: "none", background: ligada ? "#47ad4b" : "#c6d3de", position: "relative", cursor: salvando ? "default" : "pointer", transition: "background .2s", padding: 0 }}
+      >
+        <span style={{ position: "absolute", top: 2, left: ligada ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,.25)" }} />
+      </button>
+      {ligada ? (
+        <LinkFerramenta href={href}>{children}</LinkFerramenta>
+      ) : (
+        <span
+          aria-disabled
+          style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#f2f5f8", border: "1px solid #e0e7ee", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#8493a0", justifySelf: "start" }}
+        >
+          {children}
+        </span>
+      )}
+    </div>
   );
 }

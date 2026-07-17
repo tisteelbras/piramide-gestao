@@ -10,9 +10,11 @@ import {
   padronizacaoDoSetor,
   ROTULO_PADRONIZACAO,
   COR_PADRONIZACAO,
+  ROTULO_NO,
   type MapaDoSetor,
   type ProcessoMapeado,
   type EtapaFluxo,
+  type TipoNo,
 } from "./tipos";
 
 // Mapa de Processos: para cada processo do setor, o fluxo oficial de
@@ -91,6 +93,8 @@ function BlocoProcesso({
   const [rodando, start] = useTransition();
   const [novoPasso, setNovoPasso] = useState("");
   const [aberto, setAberto] = useState(true);
+  // Lista = editor dos passos; Fluxograma = os mesmos passos desenhados.
+  const [modo, setModo] = useState<"lista" | "fluxograma">("lista");
 
   const grau = grauPadronizacao(processo);
   const lacunas = lacunasDoProcesso(processo);
@@ -128,7 +132,18 @@ function BlocoProcesso({
         >
           {ROTULO_PADRONIZACAO[grau]}
         </span>
-        <span style={{ fontSize: 12.5, color: cor.faint, marginLeft: "auto" }}>
+        {/* Modo de visualização: Lista (edita) ⇄ Fluxograma (desenha). */}
+        {aberto && processo.etapas.length > 0 && (
+          <div style={{ marginLeft: "auto", display: "inline-flex", border: `1px solid ${cor.hairline}`, borderRadius: 8, overflow: "hidden" }}>
+            {(["lista", "fluxograma"] as const).map((m) => (
+              <button key={m} onClick={(e) => { e.stopPropagation(); setModo(m); }}
+                style={{ border: "none", background: modo === m ? cor.brand : cor.surface, color: modo === m ? "#fff" : cor.muted, fontSize: 11.5, fontWeight: 700, padding: "5px 11px", cursor: "pointer" }}>
+                {m === "lista" ? "☰ Lista" : "⇄ Fluxograma"}
+              </button>
+            ))}
+          </div>
+        )}
+        <span style={{ fontSize: 12.5, color: cor.faint, marginLeft: aberto && processo.etapas.length > 0 ? 12 : "auto" }}>
           {processo.etapas.length} passo{processo.etapas.length === 1 ? "" : "s"}
         </span>
       </div>
@@ -142,40 +157,49 @@ function BlocoProcesso({
             </div>
           )}
 
-          {/* Fluxo */}
-          {processo.etapas.length > 0 && (
-            <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
-              {processo.etapas.map((e, i) => (
-                <Passo
-                  key={e.id}
-                  setorId={setorId}
-                  etapa={e}
-                  indice={i}
-                  total={processo.etapas.length}
-                  pessoas={pessoas}
-                  rodando={rodando}
-                />
-              ))}
-            </div>
+          {/* Fluxograma: os mesmos passos desenhados em fluxo (read-only). */}
+          {modo === "fluxograma" && processo.etapas.length > 0 && (
+            <Fluxograma etapas={processo.etapas} />
           )}
 
-          {/* Novo passo */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <input
-              value={novoPasso}
-              onChange={(ev) => setNovoPasso(ev.target.value)}
-              onKeyDown={(ev) => { if (ev.key === "Enter") adicionar(); }}
-              placeholder={processo.etapas.length === 0 ? "Primeiro passo do fluxo (ex.: Receber a solicitação)" : "Próximo passo…"}
-              style={{ flex: "1 1 260px", border: `1px solid ${cor.hairline}`, borderRadius: 9, padding: "9px 12px", fontSize: 13.5, color: cor.ink, background: cor.surface }}
-            />
-            <button
-              onClick={adicionar}
-              disabled={rodando || !novoPasso.trim()}
-              style={{ border: "none", background: cor.brand, color: "#fff", fontWeight: 700, fontSize: 13, padding: "9px 16px", borderRadius: 9, cursor: rodando || !novoPasso.trim() ? "default" : "pointer", opacity: rodando || !novoPasso.trim() ? 0.6 : 1 }}
-            >
-              + Passo
-            </button>
-          </div>
+          {/* Lista: o editor dos passos. */}
+          {modo === "lista" && (
+            <>
+              {processo.etapas.length > 0 && (
+                <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+                  {processo.etapas.map((e, i) => (
+                    <Passo
+                      key={e.id}
+                      setorId={setorId}
+                      etapa={e}
+                      indice={i}
+                      total={processo.etapas.length}
+                      pessoas={pessoas}
+                      rodando={rodando}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Novo passo */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <input
+                  value={novoPasso}
+                  onChange={(ev) => setNovoPasso(ev.target.value)}
+                  onKeyDown={(ev) => { if (ev.key === "Enter") adicionar(); }}
+                  placeholder={processo.etapas.length === 0 ? "Primeiro passo do fluxo (ex.: Receber a solicitação)" : "Próximo passo…"}
+                  style={{ flex: "1 1 260px", border: `1px solid ${cor.hairline}`, borderRadius: 9, padding: "9px 12px", fontSize: 13.5, color: cor.ink, background: cor.surface }}
+                />
+                <button
+                  onClick={adicionar}
+                  disabled={rodando || !novoPasso.trim()}
+                  style={{ border: "none", background: cor.brand, color: "#fff", fontWeight: 700, fontSize: 13, padding: "9px 16px", borderRadius: 9, cursor: rodando || !novoPasso.trim() ? "default" : "pointer", opacity: rodando || !novoPasso.trim() ? 0.6 : 1 }}
+                >
+                  + Passo
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -208,6 +232,10 @@ function Passo({
   const salvar = (campo: "descricao" | "entrega" | "responsavelId", valor: string) =>
     start(async () => {
       await atualizarEtapa({ setorId, id: etapa.id, [campo]: valor || null });
+    });
+  const salvarTipo = (t: TipoNo) =>
+    start(async () => {
+      await atualizarEtapa({ setorId, id: etapa.id, tipoNo: t });
     });
 
   return (
@@ -256,6 +284,16 @@ function Passo({
 
       {expandido && (
         <div style={{ padding: "0 12px 12px 46px", display: "grid", gap: 8 }}>
+          {/* Tipo do nó: define a forma desenhada no Fluxograma. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: cor.muted }}>No fluxograma é:</span>
+            {(["inicio", "acao", "decisao", "fim"] as const).map((t) => (
+              <button key={t} onClick={() => salvarTipo(t)}
+                style={{ border: `1px solid ${etapa.tipoNo === t ? cor.brand : cor.hairline}`, background: etapa.tipoNo === t ? "#eef4f9" : cor.surface, color: etapa.tipoNo === t ? cor.brand : cor.muted, fontSize: 11.5, fontWeight: 700, padding: "4px 10px", borderRadius: 999, cursor: "pointer" }}>
+                {ROTULO_NO[t]}
+              </button>
+            ))}
+          </div>
           <label style={{ display: "grid", gap: 4 }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: cor.muted }}>Como executar (instrução de trabalho)</span>
             <textarea
@@ -313,3 +351,78 @@ const btnIcone = (desabilitado: boolean): React.CSSProperties => ({
   lineHeight: 1,
   padding: 0,
 });
+
+// ————— Fluxograma: os mesmos passos da Lista, desenhados em fluxo —————
+// Visualização read-only. A edição é toda na Lista; aqui só se desenha, na
+// ordem das etapas, com a forma de cada nó (início/fim = cápsula, ação =
+// retângulo, decisão = losango). Um gera o outro: mudou a Lista, mudou o
+// desenho.
+const ESTILO_NO: Record<TipoNo, { fundo: string; borda: string; texto: string; forma: "capsula" | "retangulo" | "losango" }> = {
+  inicio: { fundo: "#eef7ef", borda: "#8dcb90", texto: "#256a2b", forma: "capsula" },
+  acao: { fundo: "#eef4f9", borda: "#9fc8e8", texto: "#0e1a24", forma: "retangulo" },
+  decisao: { fundo: "#fff6e6", borda: "#eecb7a", texto: "#8a6d00", forma: "losango" },
+  fim: { fundo: "#fdecea", borda: "#e5a49e", texto: "#a33228", forma: "capsula" },
+};
+
+function Fluxograma({ etapas }: { etapas: EtapaFluxo[] }) {
+  return (
+    <div style={{ display: "grid", justifyItems: "center", gap: 0, padding: "6px 0 2px" }}>
+      {etapas.map((e, i) => (
+        <div key={e.id} style={{ display: "grid", justifyItems: "center", width: "100%" }}>
+          <NoFluxo etapa={e} numero={i + 1} />
+          {i < etapas.length - 1 && (
+            <div aria-hidden style={{ width: 2, height: 22, background: cor.faint2, margin: "0 auto", position: "relative" }}>
+              <span style={{ position: "absolute", bottom: -1, left: "50%", transform: "translateX(-50%)", color: cor.faint2, fontSize: 13, lineHeight: 1 }}>▼</span>
+            </div>
+          )}
+        </div>
+      ))}
+      <p style={{ margin: "12px 0 0", fontSize: 11.5, color: cor.faint, textAlign: "center" }}>
+        Fluxograma gerado da Lista. Para editar um passo, volte ao modo <b>Lista</b>.
+      </p>
+    </div>
+  );
+}
+
+function NoFluxo({ etapa, numero }: { etapa: EtapaFluxo; numero: number }) {
+  const s = ESTILO_NO[etapa.tipoNo];
+  const base: React.CSSProperties = {
+    background: s.fundo,
+    border: `2px solid ${s.borda}`,
+    color: s.texto,
+    maxWidth: 340,
+    minWidth: 180,
+    textAlign: "center",
+    padding: "12px 18px",
+    fontSize: 13,
+    fontWeight: 700,
+  };
+  const forma: React.CSSProperties =
+    s.forma === "capsula" ? { borderRadius: 999 }
+    : s.forma === "losango" ? { borderRadius: 14, transform: "rotate(0deg)" } // losango “suave”: cantos + faixa lateral
+    : { borderRadius: 10 };
+
+  return (
+    <div style={{ ...base, ...forma, position: "relative" }}>
+      {s.forma === "losango" && (
+        <span style={{ position: "absolute", top: -9, left: "50%", transform: "translateX(-50%)", background: s.borda, color: "#fff", fontSize: 10, fontWeight: 800, padding: "1px 8px", borderRadius: 999, whiteSpace: "nowrap" }}>
+          decisão ◆
+        </span>
+      )}
+      <div style={{ fontSize: 10.5, fontWeight: 800, opacity: 0.6, marginBottom: 2 }}>
+        {ROTULO_NO[etapa.tipoNo].toUpperCase()} · {numero}
+      </div>
+      <div>{etapa.titulo}</div>
+      {etapa.responsavelNome && (
+        <div style={{ fontSize: 11, fontWeight: 600, opacity: 0.75, marginTop: 3 }}>
+          👤 {etapa.responsavelNome}
+        </div>
+      )}
+      {etapa.entrega && (
+        <div style={{ fontSize: 10.5, fontWeight: 600, opacity: 0.7, marginTop: 2 }}>
+          → {etapa.entrega}
+        </div>
+      )}
+    </div>
+  );
+}

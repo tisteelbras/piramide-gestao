@@ -2,7 +2,6 @@ import "server-only";
 import { and, eq, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { indicador, recomendacao, cicloSnapshot } from "@/db/schema";
-import { atingimentoKpi } from "@/domain/indicadores";
 import { retratoEvolucao, textoPersistencia } from "@/domain/evolucao";
 import { maturidadeDoSetor } from "@/features/assessments/maturidade-setor";
 import { getEmpresa } from "@/features/assessments/queries";
@@ -65,21 +64,12 @@ export async function carregarResultados(setorId: string) {
   const ciclosDesde = (criadoEm: Date) => datasFechamento.filter((t) => t > criadoEm.getTime()).length;
 
   return {
-    indicadores: inds.map((i): IndicadorItem => {
-      const medida = {
-        meta: i.meta != null ? Number(i.meta) : null,
-        valorAtual: i.valorAtual != null ? Number(i.valorAtual) : null,
-        direcao: i.direcao,
-        ehAusencia: i.ehAusencia,
-      };
-      return {
-        id: i.id,
-        nome: i.nome,
-        unidade: i.unidade,
-        ...medida,
-        atingimento: atingimentoKpi(medida),
-      };
-    }),
+    indicadores: inds.map((i): IndicadorItem => ({
+      id: i.id,
+      nome: i.nome,
+      ehAusencia: i.ehAusencia,
+      processoId: i.processoId,
+    })),
     recomendacoes: recs.map((r): RecomendacaoItem => ({
       id: r.id,
       titulo: r.titulo,

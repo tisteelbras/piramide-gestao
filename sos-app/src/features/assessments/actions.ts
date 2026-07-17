@@ -5,7 +5,12 @@ import { db } from "@/db";
 import { resposta, avaliacao } from "@/db/schema";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
-import { normalizaFerramentas, TODAS_FERRAMENTAS } from "@/domain/ferramentas-analise";
+import {
+  normalizaFerramentas,
+  TODAS_FERRAMENTAS,
+  ferramentasVinculadas,
+  type FerramentaAnalise,
+} from "@/domain/ferramentas-analise";
 import type { StatusResposta } from "./tipos";
 
 /** Salva (upsert) a resposta de um critério dentro de uma avaliação. */
@@ -40,18 +45,39 @@ export async function salvarResposta(input: {
 }
 
 /**
- * Salva a escolha de ferramentas da análise. "completa" liga todas;
- * "parcial" grava só as escolhidas (normalizadas contra o catálogo). A
- * escolha pode ser refeita a qualquer momento pelo mesmo painel.
+ * Liga/desliga UMA ferramenta desta análise, direto na etapa da Visão. O
+ * gestor responsável (quem avalia o setor) decide caso a caso.
+ *
+ * `ferramentasHabilitadas === null` significa "escolha nunca feita" → todas
+ * ligadas: no primeiro toggle materializamos a lista completa e então
+ * aplicamos a mudança, para não desligar tudo sem querer.
+ *
+ * Vínculos: ferramentas que andam juntas (Objetivos ↔ BSC) ligam/desligam
+ * em conjunto — a regra vive em ferramentasVinculadas().
  */
-export async function salvarFerramentasAnalise(
+export async function toggleFerramentaAnalise(
   avaliacaoId: string,
-  modo: "completa" | "parcial",
-  escolhidas: string[] = [],
+  ferramenta: FerramentaAnalise,
+  ligar: boolean,
 ) {
   const session = await auth();
   if (!session?.user) throw new Error("Não autenticado.");
-  const lista = modo === "completa" ? [...TODAS_FERRAMENTAS] : normalizaFerramentas(escolhidas);
+
+  const aval = await db.query.avaliacao.findFirst({ where: eq(avaliacao.id, avaliacaoId) });
+  if (!aval) throw new Error("Avaliação não encontrada.");
+
+  // Base: null (nunca escolhida) = todas ligadas.
+  const base = aval.ferramentasHabilitadas === null
+    ? new Set<FerramentaAnalise>(TODAS_FERRAMENTAS)
+    : new Set<FerramentaAnalise>(normalizaFerramentas(aval.ferramentasHabilitadas));
+
+  // Aplica a ferramenta e todas as vinculadas a ela, no mesmo sentido.
+  for (const f of ferramentasVinculadas(ferramenta)) {
+    if (ligar) base.add(f); else base.delete(f);
+  }
+  // Preserva a ordem do catálogo.
+  const lista = TODAS_FERRAMENTAS.filter((f) => base.has(f));
+
   await db.update(avaliacao)
     .set({ ferramentasHabilitadas: lista, atualizadoEm: new Date() })
     .where(eq(avaliacao.id, avaliacaoId));

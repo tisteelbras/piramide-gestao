@@ -43,10 +43,10 @@ export default function PainelResultados({
 
   return (
     <div style={{ marginTop: 18, borderTop: "1px solid #e3ebf1", paddingTop: 16 }}>
-      {/* Os indicadores (KPIs) NÃO aparecem aqui: eles se cadastram e se medem
-          na etapa "Indicadores de Desempenho" da Visão. No N4, o desempenho
-          deles entra apenas consolidado, como o card "Resultado de KPI" nos
-          tópicos acima. */}
+      {/* Os indicadores (KPIs) NÃO aparecem aqui: eles se declaram na etapa
+          "Indicadores de Desempenho" da Visão e cada um vira um processo de
+          execução em Processos. No N4, o que entra é a maturidade desses
+          processos, consolidada no card "Resultado de KPI" nos tópicos acima. */}
 
       {/* Evolução desde o último ciclo */}
       {resultados.evolucao && <PainelEvolucao ev={resultados.evolucao} />}

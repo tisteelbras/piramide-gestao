@@ -3,9 +3,20 @@
 // Materializa o pilar "Padronização" da Governança Operacional:
 // "existe uma forma oficial de executar o trabalho?".
 
+/** Forma do nó no fluxograma. A mesma etapa é vista como Lista ou desenho. */
+export type TipoNo = "inicio" | "acao" | "decisao" | "fim";
+
+export const ROTULO_NO: Record<TipoNo, string> = {
+  inicio: "Início",
+  acao: "Ação",
+  decisao: "Decisão",
+  fim: "Fim",
+};
+
 export type EtapaFluxo = {
   id: string;
   ordem: number;
+  tipoNo: TipoNo;
   titulo: string;
   descricao: string | null;
   responsavelId: string | null;

@@ -31,15 +31,15 @@ const ENTREGAS: Entrega[] = [
     n: 2,
     titulo: "Gestão por Objetivos no lugar certo + KPIs que medem de verdade",
     problema:
-      "A Gestão por Objetivos estava na etapa de Visão (planejamento), quando na prática ela só acontece depois dos processos. E os indicadores (KPIs) eram decorativos: não tinham meta, valor nem viravam nota.",
+      "A Gestão por Objetivos estava na etapa de Visão (planejamento), quando na prática ela só acontece depois dos processos. E não estava claro o que o NEXO mede sobre um KPI: o valor do indicador em si é apurado em outra plataforma.",
     solucao:
-      "A Gestão por Objetivos virou um resultado da execução, no nível certo. E cada KPI agora tem meta, valor atual e sentido (quanto maior/menor é melhor); o atingimento vira nota na pirâmide.",
+      "A Gestão por Objetivos virou um resultado da execução, no nível certo. E o KPI passou a funcionar como deve: a área declara quais indicadores tem, e cada um vira um processo em Processos — o processo que se executa para atingir aquele KPI. É a maturidade dessa execução que vira nota na pirâmide.",
     valor:
-      "O diagnóstico parou de dizer “está tudo bem” sem medir nada. Um KPI só conta como resultado quando é de fato medido.",
+      "O diagnóstico deixou de confundir “ter o número” com “fazer o que leva ao número”. O que conta como resultado é a execução que persegue a meta.",
     itens: [
       "Visão ficou mais enxuta e fiel ao que é planejamento",
-      "Indicadores passaram a puxar a nota de Resultado",
-      "Dois bugs de cálculo corrigidos de quebra",
+      "Cada KPI declarado gera o processo de execução que o persegue",
+      "O Resultado de KPI passou a medir a execução, não o valor apurado fora",
     ],
   },
   {

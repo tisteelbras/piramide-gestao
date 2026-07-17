@@ -24,7 +24,10 @@ export const TIPOS_PROCESSO: { id: TipoProcesso; label: string; resultado: strin
   { id: "desempenho", label: "Avaliação de desempenho aplicada", resultado: "Resultado da Avaliação de desempenho" },
   { id: "governanca", label: "Governança e controles internos", resultado: "Resultado de Governança e controles" },
   { id: "monitoramento", label: "Monitoramento contínuo dos resultados", resultado: "Resultado do Monitoramento contínuo" },
-  { id: "kpi", label: "KPI", resultado: "Resultado de KPI" },
+  // KPI: NÃO se cria solto aqui — nasce ao declarar o indicador na etapa
+  // Indicadores da Visão. Este processo é "a execução que a área faz para
+  // atingir o KPI"; medi-lo (5 eixos) é o que forma o Resultado de KPI.
+  { id: "kpi", label: "Execução de KPI (nasce do indicador)", resultado: "Resultado de KPI" },
   // Disciplina Operacional: mede a EXECUÇÃO do que a Visão concebeu —
   // aderência, cumprimento, controles, monitoramento e melhoria. É onde
   // vive a pergunta "estamos executando com disciplina?".

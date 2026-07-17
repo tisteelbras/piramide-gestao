@@ -3,17 +3,20 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { addIndicador, removeIndicador, toggleAusenciaIndicador, salvarMedicaoIndicador } from "./actions";
-import type { IndicadorItem, DirecaoIndicador } from "./tipos";
+import { addIndicador, removeIndicador, toggleAusenciaIndicador } from "./actions";
+import type { IndicadorItem } from "./tipos";
 
 const GREEN = "#47ad4b", INK = "#0e1a24";
-const corAtingimento = (n: number) => (n >= 90 ? "#33853a" : n >= 70 ? "#d98a00" : "#c0392b");
-const inputBase: React.CSSProperties = { border: "1px solid #dce6ee", borderRadius: 8, padding: "6px 8px", fontSize: 13, color: INK, width: "100%" };
 
 /**
- * Tela da etapa "Indicadores de Desempenho" da Visão. Cada indicador criado
- * aqui vira automaticamente um processo (N3) e alimenta o Resultado de KPI
- * (N4) — um único cadastro conecta os três níveis.
+ * Tela da etapa "Indicadores de Desempenho" da Visão. Aqui a área apenas
+ * DECLARA quais KPIs ela tem (ou reconhece que precisa ter). O valor do KPI
+ * em si é medido em outra plataforma — o NEXO não coleta meta × valor.
+ *
+ * Cada KPI declarado cria automaticamente um PROCESSO (N3): "o processo que
+ * a área executa para atingir aquele indicador". É ESSE processo que é
+ * medido (5 eixos) e forma o Resultado de KPI (N4) — um cadastro conecta os
+ * três níveis.
  */
 export default function PainelIndicadores({ setorId, setorNome, indicadores }: {
   setorId: string; setorNome: string; indicadores: IndicadorItem[];
@@ -34,7 +37,7 @@ export default function PainelIndicadores({ setorId, setorNome, indicadores }: {
       <div style={{ maxWidth: 940, margin: "0 auto" }}>
         <div style={{ background: "#fff", border: "1px solid #e3ebf1", borderRadius: 12, padding: "14px 16px", marginBottom: 16 }}>
           <p style={{ margin: 0, fontSize: 13, color: "#5b6b78" }}>
-            <b>Como a área se mede.</b> Cada indicador vira um <b>processo</b> em Processos e seu atingimento (valor × meta) forma o <b>Resultado de KPI</b> na pirâmide — você cadastra uma vez, aparece nos três níveis.
+            <b>Quais KPIs a área tem?</b> Declare aqui os indicadores que dizem se a área entrega. O <b>valor de cada KPI é medido fora do NEXO</b> — aqui a pergunta é <i>“tenho esse indicador e faço o processo para chegar nele?”</i>. Cada KPI declarado vira um <b>processo</b> em Processos: é a <b>execução desse processo</b> que é avaliada e forma o Resultado de KPI na pirâmide.
           </p>
         </div>
 
@@ -62,45 +65,27 @@ export default function PainelIndicadores({ setorId, setorNome, indicadores }: {
 function LinhaKpi({ i, setorId, run }: {
   i: IndicadorItem; setorId: string; run: (fn: () => Promise<unknown>) => void;
 }) {
-  const [meta, setMeta] = useState(i.meta?.toString() ?? "");
-  const [valor, setValor] = useState(i.valorAtual?.toString() ?? "");
-  const [unidade, setUnidade] = useState(i.unidade ?? "");
-  const num = (s: string) => { const t = s.trim().replace(",", "."); if (!t) return null; const n = Number(t); return Number.isFinite(n) ? n : null; };
-
   return (
     <div style={{ border: "1px solid #e3ebf1", borderRadius: 10, padding: "10px 12px", background: i.ehAusencia ? "#fffbfb" : "#fff" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: i.ehAusencia ? 0 : 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <span style={{ fontWeight: 700, color: INK, fontSize: 13.5 }}>{i.nome}</span>
         <button onClick={() => run(() => toggleAusenciaIndicador(i.id, !i.ehAusencia))}
-          title={i.ehAusencia ? "Não medido — conta 0 no Resultado." : "Marcar como ausente."}
+          title={i.ehAusencia ? "A área reconhece que precisa deste KPI, mas ainda não o tem." : "A área tem este KPI."}
           style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, cursor: "pointer", border: i.ehAusencia ? "1px solid #f0c0bd" : "1px solid #cfe0d0", background: i.ehAusencia ? "#fdecea" : "#eef7ef", color: i.ehAusencia ? "#c0392b" : "#33853a" }}>
-          {i.ehAusencia ? "ausente" : "medido"}
+          {i.ehAusencia ? "não tenho ainda" : "tenho"}
         </button>
-        {i.atingimento !== null ? (
-          <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 800, color: corAtingimento(i.atingimento) }}>{i.atingimento}% da meta</span>
-        ) : (
-          <span style={{ marginLeft: "auto", fontSize: 12, color: "#a2afba", fontStyle: "italic" }}>sem medição</span>
+        {!i.ehAusencia && (
+          <Link href={`/setor/${setorId}/avaliar#processos`}
+            style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 700, color: "#0068a9", textDecoration: "none" }}>
+            processo em Processos ›
+          </Link>
         )}
-        <button onClick={() => run(() => removeIndicador(i.id))} style={{ border: "none", background: "transparent", color: "#c0ccd6", fontSize: 18, cursor: "pointer", lineHeight: 1 }} aria-label="Remover">×</button>
+        <button onClick={() => run(() => removeIndicador(i.id))} style={{ border: "none", background: "transparent", color: "#c0ccd6", fontSize: 18, cursor: "pointer", lineHeight: 1, marginLeft: i.ehAusencia ? "auto" : 0 }} aria-label="Remover">×</button>
       </div>
-      {!i.ehAusencia && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 0.8fr 1.2fr", gap: 8 }}>
-          <label style={{ fontSize: 11, color: "#5b6b78", fontWeight: 600 }}>Meta
-            <input value={meta} inputMode="decimal" placeholder="95" onChange={(e) => setMeta(e.target.value)} onBlur={() => run(() => salvarMedicaoIndicador(i.id, { meta: num(meta) }))} style={{ ...inputBase, marginTop: 3 }} />
-          </label>
-          <label style={{ fontSize: 11, color: "#5b6b78", fontWeight: 600 }}>Valor atual
-            <input value={valor} inputMode="decimal" placeholder="78" onChange={(e) => setValor(e.target.value)} onBlur={() => run(() => salvarMedicaoIndicador(i.id, { valorAtual: num(valor) }))} style={{ ...inputBase, marginTop: 3 }} />
-          </label>
-          <label style={{ fontSize: 11, color: "#5b6b78", fontWeight: 600 }}>Unidade
-            <input value={unidade} placeholder="%" onChange={(e) => setUnidade(e.target.value)} onBlur={() => run(() => salvarMedicaoIndicador(i.id, { unidade }))} style={{ ...inputBase, marginTop: 3 }} />
-          </label>
-          <label style={{ fontSize: 11, color: "#5b6b78", fontWeight: 600 }}>Sentido
-            <select value={i.direcao} onChange={(e) => run(() => salvarMedicaoIndicador(i.id, { direcao: e.target.value as DirecaoIndicador }))} style={{ ...inputBase, marginTop: 3, cursor: "pointer" }}>
-              <option value="maior">Quanto maior, melhor</option>
-              <option value="menor">Quanto menor, melhor</option>
-            </select>
-          </label>
-        </div>
+      {i.ehAusencia && (
+        <p style={{ margin: "8px 0 0", fontSize: 11.5, color: "#c0392b" }}>
+          KPI reconhecido como necessário, mas ainda inexistente — vira recomendação no diagnóstico.
+        </p>
       )}
     </div>
   );

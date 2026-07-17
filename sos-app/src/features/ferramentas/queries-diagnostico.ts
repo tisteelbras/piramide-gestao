@@ -82,6 +82,7 @@ export const statusDiagnosticoPorSetor = cache(
         etapas: (etapasPorProc.get(p.id) ?? []).map((e) => ({
           id: e.id,
           ordem: e.ordem,
+          tipoNo: e.tipoNo,
           titulo: e.titulo,
           descricao: e.descricao,
           responsavelId: e.responsavelId,
