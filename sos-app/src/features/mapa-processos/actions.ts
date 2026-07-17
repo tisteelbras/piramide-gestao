@@ -35,16 +35,13 @@ export async function addEtapa(input: {
   await db.insert(etapaProcesso).values({
     processoId: input.processoId,
     ordem: prox,
-    // O primeiro passo do fluxo nasce como "Início" para o fluxograma ter
-    // começo; os seguintes são "Ação" (o gestor ajusta para decisão/fim).
-    tipoNo: prox === 0 ? "inicio" : "acao",
     titulo,
   });
   refresh(input.setorId);
   return { ok: true as const };
 }
 
-/** Atualiza um campo da etapa (instrução, responsável, entrega, título, tipo do nó). */
+/** Atualiza um campo da etapa (instrução, responsável, entrega, título). */
 export async function atualizarEtapa(input: {
   setorId: string;
   id: string;
@@ -52,7 +49,6 @@ export async function atualizarEtapa(input: {
   descricao?: string | null;
   responsavelId?: string | null;
   entrega?: string | null;
-  tipoNo?: "inicio" | "acao" | "decisao" | "fim";
 }) {
   await guard();
   const patch: Record<string, unknown> = { atualizadoEm: new Date() };
@@ -64,7 +60,6 @@ export async function atualizarEtapa(input: {
   if (input.descricao !== undefined) patch.descricao = input.descricao?.trim() || null;
   if (input.entrega !== undefined) patch.entrega = input.entrega?.trim() || null;
   if (input.responsavelId !== undefined) patch.responsavelId = input.responsavelId || null;
-  if (input.tipoNo !== undefined) patch.tipoNo = input.tipoNo;
 
   await db.update(etapaProcesso).set(patch).where(eq(etapaProcesso.id, input.id));
   refresh(input.setorId);

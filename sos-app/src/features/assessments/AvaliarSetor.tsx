@@ -249,11 +249,13 @@ export default function AvaliarSetor({
               <p style={{ margin: "0 0 10px", fontSize: 13.5, color: "#8493a0" }}>
                 Cadastre cada processo da operação. Processos tipados — <b>Avaliação de desempenho, Governança, Monitoramento, Disciplina Operacional</b> e <b>Gestão por Objetivos</b> — alimentam automaticamente o nível Resultado.
               </p>
-              {/* Mapa de Processos / Fluxograma: a forma oficial de executar
-                  cada processo. Saiu da Governança (Visão) e passou a viver
-                  aqui, junto dos processos que ele detalha. */}
-              <div style={{ marginBottom: 14 }}>
-                <LinkFerramenta href={`/setor/${setorId}/mapa`}>⇉ Mapa de Processos / Fluxograma — o passo a passo oficial de cada processo, em lista ou fluxograma ›</LinkFerramenta>
+              {/* Duas ferramentas do N3, lado a lado:
+                  • Mapa de Processos: o passo a passo DENTRO de cada processo.
+                  • Fluxograma: liga os PROCESSOS do setor entre si (fluxo macro).
+                  O Mapa saiu da Governança (Visão) e passou a viver aqui. */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                <LinkFerramenta href={`/setor/${setorId}/mapa`}>⇉ Mapa de Processos — o passo a passo oficial dentro de cada processo ›</LinkFerramenta>
+                <LinkFerramenta href={`/setor/${setorId}/fluxograma`}>🔀 Fluxograma — ligue os processos do setor em sequência ›</LinkFerramenta>
               </div>
               <PainelProcessos setorId={setorId} processos={processos} />
             </div>

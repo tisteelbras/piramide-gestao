@@ -10,5 +10,6 @@ export * from "./ferramentas";
 export * from "./governanca";
 export * from "./raci";
 export * from "./mapa-processo";
+export * from "./fluxograma";
 export * from "./visao-ferramentas";
 export * from "./documentos";

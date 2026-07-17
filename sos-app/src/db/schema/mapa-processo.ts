@@ -15,9 +15,10 @@ import { pk, timestamps } from "./_shared";
 import { colaborador } from "./organizacao";
 import { processo } from "./processos";
 
-/** Tipo do nó no fluxograma. A mesma lista de passos é vista como Lista
- *  (editor) ou como Fluxograma (desenho): o tipo diz que forma desenhar —
- *  cápsula para início/fim, retângulo para ação, losango para decisão. */
+/** LEGADO — não usar. Criado quando o fluxograma era um "modo de ver" o
+ *  Mapa; hoje o Fluxograma é ferramenta própria (db/schema/fluxograma.ts) e
+ *  liga PROCESSOS, não passos. A coluna tipo_no permanece inerte apenas para
+ *  não exigir uma migração destrutiva. */
 export const tipoNoFluxo = pgEnum("tipo_no_fluxo", [
   "inicio",
   "acao",
