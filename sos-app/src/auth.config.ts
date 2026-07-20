@@ -40,11 +40,12 @@ export const authConfig = {
       destino.searchParams.set("callbackUrl", `${origem}${nextUrl.pathname}${nextUrl.search}`);
       return Response.redirect(destino);
     },
-    // Propaga papel e id do usuário para o token/sessão.
+    // Propaga papel, id e empresa do usuário para o token/sessão.
     jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.papel = (user as { papel?: string }).papel;
+        token.empresaId = (user as { empresaId?: string }).empresaId;
       }
       return token;
     },
@@ -52,6 +53,7 @@ export const authConfig = {
       if (session.user) {
         session.user.id = token.id as string;
         (session.user as { papel?: string }).papel = token.papel as string;
+        (session.user as { empresaId?: string }).empresaId = token.empresaId as string;
       }
       return session;
     },

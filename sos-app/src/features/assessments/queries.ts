@@ -7,14 +7,35 @@ import "server-only";
 import { cache } from "react";
 import { and, eq, desc } from "drizzle-orm";
 import { db } from "@/db";
-import { empresa, setor, criterio, avaliacao, resposta, anexo } from "@/db/schema";
+import { empresa, setor, criterio, avaliacao, resposta, anexo, usuario } from "@/db/schema";
+import { auth } from "@/auth";
 import type { Nivel } from "./tipos";
 
-/** A empresa única (Steelbras) — enquanto for single-tenant.
+/** A empresa do usuário logado — a fronteira de dados de todo o app.
+ *
+ *  Toda query e mutação passa por aqui para saber "de quem é este dado".
+ *  Derivar da SESSÃO (e não de um nome fixo) é o que faz essa fronteira
+ *  existir de verdade: no dia em que houver uma segunda empresa, ninguém
+ *  precisa revisitar as dezenas de actions que dependem deste retorno.
+ *
+ *  Fallback: sessões JWT emitidas antes de o token carregar empresaId não
+ *  têm o campo. Em vez de deslogar quem está no meio do trabalho, buscamos
+ *  a empresa pelo usuário no banco. Pode sair quando as sessões antigas
+ *  expirarem.
+ *
  *  cache() deduplica: dentro de um mesmo request, a empresa é buscada
  *  uma vez só, mesmo que dezenas de chamadas a maturidadeDoSetor a peçam. */
 export const getEmpresa = cache(async () => {
-  const e = await db.query.empresa.findFirst({ where: eq(empresa.nome, "Steelbras") });
+  const s = await auth();
+  const u = s?.user as { id?: string; empresaId?: string } | undefined;
+  if (!u?.id) throw new Error("Não autenticado.");
+
+  const empresaId =
+    u.empresaId ??
+    (await db.query.usuario.findFirst({ where: eq(usuario.id, u.id) }))?.empresaId;
+  if (!empresaId) throw new Error("Usuário sem empresa vinculada.");
+
+  const e = await db.query.empresa.findFirst({ where: eq(empresa.id, empresaId) });
   if (!e) throw new Error("Empresa não encontrada. Rode o seed.");
   return e;
 });
