@@ -1,7 +1,13 @@
 // ————————————————————————————————————————————————
 // Motor de maturidade NEXO — fonte única de cálculo por setor.
 //
-// Cada nível tem sua própria mecânica:
+// Este arquivo faz a BUSCA dos dados; a REGRA de cálculo vive em
+// domain/maturidade-nexo.ts, que é pura e coberta por testes. A separação
+// existe para que o cálculo que define a nota do cliente possa ser
+// verificado sem subir banco.
+//
+// Cada nível tem sua própria mecânica (detalhada junto de cada regra no
+// módulo de domínio):
 //   VISÃO      → % de etapas com status "revisada" (checklist binário)
 //   RECURSOS   → média dos grupos: RH (média dos colaboradores nos 4
 //                eixos), Sistêmico (média dos sistemas avaliados),
@@ -28,12 +34,9 @@ import {
   processo, avaliacaoProcesso,
 } from "@/db/schema";
 import { TIPOS_COM_RESULTADO } from "@/features/processes/tipos";
+import { calculaMaturidade } from "@/domain/maturidade-nexo";
 import { getEmpresa } from "./queries";
-import type { Nivel, MaturidadeDTO } from "./tipos";
-
-const arred = (n: number) => Math.round(n * 10) / 10;
-const media = (vals: number[]): number | null =>
-  vals.length ? arred(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+import type { MaturidadeDTO } from "./tipos";
 
 export type MaturidadeSetor = MaturidadeDTO;
 
@@ -66,13 +69,9 @@ export const maturidadeDoSetor = cache(async (setorId: string): Promise<Maturida
     ]);
   const mapaResp = new Map(respostas.map((r) => [r.criterioId, r]));
 
-  // ——— VISÃO: checklist binário ———
-  const itensVisao = criterios.filter((c) => c.nivel === "visao");
-  const revisadas = itensVisao.filter((c) => mapaResp.get(c.id)?.status === "revisada").length;
-  const pctVisao = itensVisao.length ? arred((revisadas / itensVisao.length) * 100) : 0;
-
-  // ——— RECURSOS: média dos 3 grupos ———
-  // RH: média por colaborador (4 eixos), depois média do time.
+  // Agrupa as notas soltas do banco por dono, para entregar ao cálculo o
+  // retrato já montado. Notas null são descartadas aqui: para a regra, o
+  // que não foi avaliado simplesmente não existe (não vale zero).
   const notasPorColab = new Map<string, number[]>();
   for (const n of notasColab) {
     if (n.nota == null) continue;
@@ -80,21 +79,6 @@ export const maturidadeDoSetor = cache(async (setorId: string): Promise<Maturida
     arr.push(Number(n.nota));
     notasPorColab.set(n.colaboradorId, arr);
   }
-  const mediasColab = colabs
-    .map((c) => media(notasPorColab.get(c.id) ?? []))
-    .filter((m): m is number => m !== null);
-  const mediaRh = media(mediasColab);
-  // Sistêmico: média dos sistemas avaliados (necessidades ficam de fora
-  // da média — elas viram recomendação, não nota).
-  const mediaSist = media(
-    sistemas.filter((s) => !s.ehNecessidade && s.nota != null).map((s) => Number(s.nota)),
-  );
-  // Estrutural: média dos ativos avaliados.
-  const mediaEstr = media(ativos.filter((a) => a.nota != null).map((a) => Number(a.nota)));
-  const gruposComDados = [mediaRh, mediaSist, mediaEstr].filter((m): m is number => m !== null);
-  const pctTatico = media(gruposComDados) ?? 0;
-
-  // ——— PROCESSOS: média das médias ———
   const notasPorProc = new Map<string, number[]>();
   const idsProcs = new Set(procs.map((p) => p.id));
   for (const n of notasProc) {
@@ -103,55 +87,17 @@ export const maturidadeDoSetor = cache(async (setorId: string): Promise<Maturida
     arr.push(Number(n.nota));
     notasPorProc.set(n.processoId, arr);
   }
-  const porProcesso = procs.map((p) => ({ nome: p.nome, media: media(notasPorProc.get(p.id) ?? []) }));
-  const pctProcessos = media(porProcesso.map((p) => p.media).filter((m): m is number => m !== null)) ?? 0;
 
-  // ——— RESULTADOS: resultado de processo aplicado ———
-  // Um tópico por tipo de processo que tem resultado (a lista é a fonte
-  // única em features/processes/tipos.ts). Cada tópico mostra a média dos
-  // processos daquele tipo — inclusive "Resultado de KPI", que é a
-  // maturidade dos processos que a área executa para atingir cada
-  // indicador. Cadastrar o KPI (na Visão) cria o processo; medir esse
-  // processo (5 eixos) é o que produz o resultado.
-  const itensResultado = TIPOS_COM_RESULTADO.map((t) => {
-    // Processo tipado sem notas conta como 0 — existir sem ser executado
-    // derruba o resultado e provoca o preenchimento. `nota` só fica null
-    // quando não há nenhum processo do tipo.
-    const doTipo = procs
-      .filter((p) => p.tipo === t.id)
-      .map((p) => media(notasPorProc.get(p.id) ?? []) ?? 0);
-    return { titulo: t.resultado, nota: media(doTipo) };
+  // A REGRA vive em domain/maturidade-nexo.ts (pura e testada); aqui só
+  // buscamos os dados e montamos a entrada.
+  return calculaMaturidade({
+    itensVisao: criterios
+      .filter((c) => c.nivel === "visao")
+      .map((c) => ({ id: c.id, status: mapaResp.get(c.id)?.status, respondido: mapaResp.has(c.id) })),
+    colaboradores: colabs.map((c) => ({ id: c.id, notas: notasPorColab.get(c.id) ?? [] })),
+    sistemas: sistemas.map((s) => ({ nota: s.nota == null ? null : Number(s.nota), ehNecessidade: s.ehNecessidade })),
+    ativos: ativos.map((a) => ({ nota: a.nota == null ? null : Number(a.nota) })),
+    processos: procs.map((p) => ({ id: p.id, nome: p.nome, tipo: p.tipo, notas: notasPorProc.get(p.id) ?? [] })),
+    tiposComResultado: TIPOS_COM_RESULTADO,
   });
-  const pctResultados = media(itensResultado.map((i) => i.nota).filter((n): n is number => n !== null)) ?? 0;
-
-  const porNivel: Record<Nivel, number> = {
-    visao: pctVisao,
-    tatico: pctTatico,
-    processos: pctProcessos,
-    resultados: pctResultados,
-  };
-  const geral = arred((pctVisao + pctTatico + pctProcessos + pctResultados) / 4);
-
-  // Pendências: o que ainda não foi tocado. O processo de execução de cada
-  // KPI, quando ainda não avaliado nos 5 eixos, já entra na conta abaixo via
-  // `porProcesso` (média null) — não há contagem própria de KPI aqui.
-  const pendencias =
-    (itensVisao.length - itensVisao.filter((c) => mapaResp.has(c.id)).length) +
-    colabs.filter((c) => !notasPorColab.has(c.id)).length +
-    sistemas.filter((s) => !s.ehNecessidade && s.nota == null).length +
-    ativos.filter((a) => a.nota == null).length +
-    porProcesso.filter((p) => p.media === null).length +
-    itensResultado.filter((i) => i.nota === null).length;
-
-  return {
-    porNivel,
-    geral,
-    detalhe: {
-      visao: { revisadas, total: itensVisao.length },
-      tatico: { rh: mediaRh, sistemico: mediaSist, estrutural: mediaEstr },
-      processos: { porProcesso },
-      resultados: { itens: itensResultado },
-    },
-    pendencias,
-  };
 });

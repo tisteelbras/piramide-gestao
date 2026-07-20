@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Scripts temporários de depuração (experimentos de conexão/SSL). Já
+    // são ignorados pelo git; sem isto, seus erros de estilo afogam os
+    // avisos reais do app na saída do lint.
+    "tmp-*.js",
+    "tmp-*.py",
   ]),
 ]);
 
